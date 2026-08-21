@@ -1,0 +1,522 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Identity & access
+// ---------------------------------------------------------------------------
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  memberships Membership[]
+  projects    Project[]
+  roles       Role[]
+  workflows   Workflow[]
+}
+
+/// Mirrors Supabase auth.users.id (uuid) — rows are upserted on first login.
+model User {
+  id        String   @id
+  email     String   @unique
+  name      String?
+  avatarUrl String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  memberships    Membership[]
+  projectMembers ProjectMember[]
+  reportedIssues Issue[]         @relation("IssueReporter")
+  assignedIssues Issue[]         @relation("IssueAssignee")
+  comments       Comment[]
+  attachments    Attachment[]
+  testRunsRun    TestRun[]       @relation("TestRunExecutedBy")
+  muralElements  MuralElement[]  @relation("MuralElementCreatedBy")
+}
+
+enum RoleScope {
+  ORGANIZATION
+  PROJECT
+}
+
+model Role {
+  id             String    @id @default(cuid())
+  name           String
+  scope          RoleScope
+  isSystem       Boolean   @default(false)
+  organizationId String
+  createdAt      DateTime  @default(now())
+
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  permissions    RolePermission[]
+  memberships    Membership[]
+  projectMembers ProjectMember[]
+
+  @@unique([organizationId, name, scope])
+}
+
+model Permission {
+  id          String  @id @default(cuid())
+  key         String  @unique
+  description String?
+
+  roles RolePermission[]
+}
+
+model RolePermission {
+  roleId       String
+  permissionId String
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+}
+
+model Membership {
+  id             String   @id @default(cuid())
+  userId         String
+  organizationId String
+  roleId         String
+  createdAt      DateTime @default(now())
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  role         Role         @relation(fields: [roleId], references: [id])
+
+  @@unique([userId, organizationId])
+}
+
+model ProjectMember {
+  id        String   @id @default(cuid())
+  userId    String
+  projectId String
+  roleId    String
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  role    Role    @relation(fields: [roleId], references: [id])
+
+  @@unique([userId, projectId])
+}
+
+// ---------------------------------------------------------------------------
+// Projects & workflow
+// ---------------------------------------------------------------------------
+
+model Project {
+  id             String   @id @default(cuid())
+  key            String
+  name           String
+  description    String?
+  organizationId String
+  workflowId     String
+  issueCounter   Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  workflow     Workflow        @relation(fields: [workflowId], references: [id])
+  members      ProjectMember[]
+  issues       Issue[]
+  labels       Label[]
+  components   Component[]
+  boards       Board[]
+  sprints      Sprint[]
+  issueTypes   IssueType[]
+  testPlans    TestPlan[]
+
+  @@unique([organizationId, key])
+}
+
+model IssueType {
+  id        String  @id @default(cuid())
+  name      String
+  icon      String?
+  color     String?
+  isSubtask Boolean @default(false)
+  projectId String?
+
+  project Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  issues  Issue[]
+}
+
+model Workflow {
+  id             String   @id @default(cuid())
+  name           String
+  organizationId String
+  createdAt      DateTime @default(now())
+
+  organization Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  statuses     WorkflowStatus[]
+  transitions  WorkflowTransition[]
+  projects     Project[]
+}
+
+enum StatusCategory {
+  TODO
+  IN_PROGRESS
+  IN_REVIEW
+  DONE
+}
+
+model WorkflowStatus {
+  id         String         @id @default(cuid())
+  workflowId String
+  name       String
+  category   StatusCategory
+  color      String
+  order      Int            @default(0)
+  isInitial  Boolean        @default(false)
+
+  workflow        Workflow             @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  issues          Issue[]
+  fromTransitions WorkflowTransition[] @relation("FromStatus")
+  toTransitions   WorkflowTransition[] @relation("ToStatus")
+
+  @@unique([workflowId, name])
+}
+
+model WorkflowTransition {
+  id           String @id @default(cuid())
+  workflowId   String
+  name         String
+  fromStatusId String
+  toStatusId   String
+
+  workflow   Workflow       @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  fromStatus WorkflowStatus @relation("FromStatus", fields: [fromStatusId], references: [id], onDelete: Cascade)
+  toStatus   WorkflowStatus @relation("ToStatus", fields: [toStatusId], references: [id], onDelete: Cascade)
+
+  @@unique([workflowId, fromStatusId, toStatusId])
+}
+
+// ---------------------------------------------------------------------------
+// Issues
+// ---------------------------------------------------------------------------
+
+enum Priority {
+  HIGHEST
+  HIGH
+  MEDIUM
+  LOW
+  LOWEST
+}
+
+model Issue {
+  id          String    @id @default(cuid())
+  key         String
+  number      Int
+  title       String
+  description String?
+  priority    Priority  @default(MEDIUM)
+  projectId   String
+  issueTypeId String
+  statusId    String
+  reporterId  String
+  assigneeId  String?
+  parentId    String?
+  sprintId    String?
+  storyPoints Int?
+  dueDate     DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  project   Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  issueType IssueType      @relation(fields: [issueTypeId], references: [id])
+  status    WorkflowStatus @relation(fields: [statusId], references: [id])
+  reporter  User           @relation("IssueReporter", fields: [reporterId], references: [id])
+  assignee  User?          @relation("IssueAssignee", fields: [assigneeId], references: [id])
+  parent    Issue?         @relation("IssueHierarchy", fields: [parentId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  children  Issue[]        @relation("IssueHierarchy")
+  sprint    Sprint?        @relation(fields: [sprintId], references: [id])
+
+  labels              IssueLabel[]
+  components          IssueComponent[]
+  comments            Comment[]
+  attachments         Attachment[]
+  linksFrom           IssueLink[]           @relation("LinkSource")
+  linksTo             IssueLink[]           @relation("LinkTarget")
+  testCase            TestCase?
+  requirementCoverage TestCaseRequirement[] @relation("RequirementIssue")
+
+  @@unique([projectId, number])
+  @@index([projectId, statusId])
+}
+
+enum IssueLinkType {
+  BLOCKS
+  IS_BLOCKED_BY
+  RELATES_TO
+  DUPLICATES
+  IS_DUPLICATED_BY
+  CAUSES
+  IS_CAUSED_BY
+}
+
+model IssueLink {
+  id        String        @id @default(cuid())
+  sourceId  String
+  targetId  String
+  type      IssueLinkType
+  createdAt DateTime      @default(now())
+
+  source Issue @relation("LinkSource", fields: [sourceId], references: [id], onDelete: Cascade)
+  target Issue @relation("LinkTarget", fields: [targetId], references: [id], onDelete: Cascade)
+
+  @@unique([sourceId, targetId, type])
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  issueId   String
+  authorId  String
+  body      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  issue  Issue @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  author User  @relation(fields: [authorId], references: [id])
+}
+
+model Attachment {
+  id         String   @id @default(cuid())
+  issueId    String
+  uploaderId String
+  fileName   String
+  fileUrl    String
+  fileSize   Int
+  mimeType   String
+  createdAt  DateTime @default(now())
+
+  issue    Issue               @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  uploader User                @relation(fields: [uploaderId], references: [id])
+  testRuns TestRunAttachment[]
+}
+
+model Label {
+  id        String @id @default(cuid())
+  projectId String
+  name      String
+  color     String
+
+  project Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  issues  IssueLabel[]
+
+  @@unique([projectId, name])
+}
+
+model IssueLabel {
+  issueId String
+  labelId String
+
+  issue Issue @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  label Label @relation(fields: [labelId], references: [id], onDelete: Cascade)
+
+  @@id([issueId, labelId])
+}
+
+model Component {
+  id        String @id @default(cuid())
+  projectId String
+  name      String
+
+  project Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  issues  IssueComponent[]
+
+  @@unique([projectId, name])
+}
+
+model IssueComponent {
+  issueId     String
+  componentId String
+
+  issue     Issue     @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  component Component @relation(fields: [componentId], references: [id], onDelete: Cascade)
+
+  @@id([issueId, componentId])
+}
+
+// ---------------------------------------------------------------------------
+// Boards & sprints
+// ---------------------------------------------------------------------------
+
+enum BoardType {
+  KANBAN
+  SCRUM
+  MURAL
+}
+
+model Board {
+  id        String    @id @default(cuid())
+  projectId String
+  name      String
+  type      BoardType @default(KANBAN)
+  createdAt DateTime  @default(now())
+
+  project       Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  muralElements MuralElement[]
+}
+
+enum SprintStatus {
+  PLANNED
+  ACTIVE
+  COMPLETED
+}
+
+model Sprint {
+  id        String       @id @default(cuid())
+  projectId String
+  name      String
+  goal      String?
+  status    SprintStatus @default(PLANNED)
+  startDate DateTime?
+  endDate   DateTime?
+  createdAt DateTime     @default(now())
+
+  project   Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  issues    Issue[]
+  testPlans TestPlan[]
+}
+
+// ---------------------------------------------------------------------------
+// Xray (test management)
+// ---------------------------------------------------------------------------
+
+model TestCase {
+  id            String   @id @default(cuid())
+  issueId       String   @unique
+  preconditions String?
+  steps         Json
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  issue        Issue                 @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  requirements TestCaseRequirement[]
+  planEntries  TestPlanCase[]
+  runs         TestRun[]
+}
+
+model TestCaseRequirement {
+  testCaseId String
+  issueId    String
+
+  testCase TestCase @relation(fields: [testCaseId], references: [id], onDelete: Cascade)
+  issue    Issue    @relation("RequirementIssue", fields: [issueId], references: [id], onDelete: Cascade)
+
+  @@id([testCaseId, issueId])
+}
+
+model TestPlan {
+  id        String   @id @default(cuid())
+  projectId String
+  sprintId  String?
+  name      String
+  createdAt DateTime @default(now())
+
+  project    Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  sprint     Sprint?         @relation(fields: [sprintId], references: [id])
+  cases      TestPlanCase[]
+  executions TestExecution[]
+}
+
+model TestPlanCase {
+  testPlanId String
+  testCaseId String
+
+  testPlan TestPlan @relation(fields: [testPlanId], references: [id], onDelete: Cascade)
+  testCase TestCase @relation(fields: [testCaseId], references: [id], onDelete: Cascade)
+
+  @@id([testPlanId, testCaseId])
+}
+
+model TestExecution {
+  id         String   @id @default(cuid())
+  testPlanId String
+  name       String
+  createdAt  DateTime @default(now())
+
+  testPlan TestPlan  @relation(fields: [testPlanId], references: [id], onDelete: Cascade)
+  runs     TestRun[]
+}
+
+enum TestRunStatus {
+  NOT_RUN
+  PASSED
+  FAILED
+  BLOCKED
+}
+
+model TestRun {
+  id           String        @id @default(cuid())
+  executionId  String
+  testCaseId   String
+  status       TestRunStatus @default(NOT_RUN)
+  comment      String?
+  executedById String?
+  executedAt   DateTime?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  execution   TestExecution       @relation(fields: [executionId], references: [id], onDelete: Cascade)
+  testCase    TestCase            @relation(fields: [testCaseId], references: [id], onDelete: Cascade)
+  executedBy  User?               @relation("TestRunExecutedBy", fields: [executedById], references: [id])
+  attachments TestRunAttachment[]
+
+  @@unique([executionId, testCaseId])
+}
+
+model TestRunAttachment {
+  testRunId    String
+  attachmentId String
+
+  testRun    TestRun    @relation(fields: [testRunId], references: [id], onDelete: Cascade)
+  attachment Attachment @relation(fields: [attachmentId], references: [id], onDelete: Cascade)
+
+  @@id([testRunId, attachmentId])
+}
+
+// ---------------------------------------------------------------------------
+// Mural (collaborative whiteboard)
+// ---------------------------------------------------------------------------
+
+enum MuralElementType {
+  STICKY_NOTE
+  TEXT
+  FRAME
+  IMAGE
+  DRAWING
+}
+
+model MuralElement {
+  id          String           @id @default(cuid())
+  boardId     String
+  type        MuralElementType
+  x           Float
+  y           Float
+  width       Float
+  height      Float
+  rotation    Float            @default(0)
+  color       String?
+  zIndex      Int              @default(0)
+  content     Json
+  createdById String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  board     Board @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  createdBy User? @relation("MuralElementCreatedBy", fields: [createdById], references: [id])
+
+  @@index([boardId])
+}

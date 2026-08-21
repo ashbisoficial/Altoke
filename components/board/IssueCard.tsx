@@ -1,0 +1,66 @@
+"use client";
+
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+
+export type BoardIssue = {
+  id: string;
+  key: string;
+  title: string;
+  priority: "HIGHEST" | "HIGH" | "MEDIUM" | "LOW" | "LOWEST";
+  statusId: string;
+  issueType: { name: string; color: string | null };
+  assignee: { name: string | null; email: string; avatarUrl: string | null } | null;
+};
+
+const PRIORITY_LABEL: Record<BoardIssue["priority"], string> = {
+  HIGHEST: "Urgente",
+  HIGH: "Alta",
+  MEDIUM: "Media",
+  LOW: "Baja",
+  LOWEST: "Muy baja",
+};
+
+export function IssueCard({ issue }: { issue: BoardIssue }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: issue.id,
+  });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
+      tabIndex={0}
+      className="ticket-stub cursor-grab touch-none rounded-lg border border-border bg-surface p-3 pt-2 shadow-sm active:cursor-grabbing"
+    >
+      <div className="flex items-center justify-between pb-2">
+        <span className="font-mono text-xs font-medium text-accent">{issue.key}</span>
+        <span
+          className="h-2 w-2 rounded-full"
+          style={{ backgroundColor: issue.issueType.color ?? "#94A3B8" }}
+          title={issue.issueType.name}
+        />
+      </div>
+      <p className="pt-3 text-sm font-medium leading-snug">{issue.title}</p>
+      <div className="mt-2 flex items-center justify-between text-xs text-ink/60">
+        <span>{PRIORITY_LABEL[issue.priority]}</span>
+        {issue.assignee && (
+          <span
+            className="flex h-6 w-6 items-center justify-center rounded-full bg-accent/10 text-[10px] font-medium text-accent"
+            title={issue.assignee.name ?? issue.assignee.email}
+          >
+            {(issue.assignee.name ?? issue.assignee.email).slice(0, 2).toUpperCase()}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}

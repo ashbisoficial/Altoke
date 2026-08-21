@@ -1,0 +1,75 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #f5f6f8;
+  --surface: #ffffff;
+  --border: #e3e5ea;
+  --ink: #14161f;
+  --accent: #2952cc;
+  --status-todo: #94a3b8;
+  --status-progress: #2952cc;
+  --status-review: #d97706;
+  --status-done: #16a34a;
+}
+
+* {
+  border-color: var(--border);
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+}
+
+/* Accessible, visible focus ring everywhere — never suppressed. */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  /* "Ticket stub" signature: a perforated dashed line separating the
+     mono issue key from the card body, like a torn ticket. */
+  .ticket-stub {
+    position: relative;
+  }
+
+  .ticket-stub::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 2rem;
+    border-top: 1.5px dashed var(--border);
+  }
+
+  .ticket-stub::before {
+    content: "";
+    position: absolute;
+    left: -6px;
+    top: calc(2rem - 6px);
+    width: 12px;
+    height: 12px;
+    border-radius: 9999px;
+    background: var(--bg);
+    border: 1.5px solid var(--border);
+  }
+}
