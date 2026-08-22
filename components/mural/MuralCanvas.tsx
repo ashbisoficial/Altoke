@@ -2,6 +2,22 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import {
+  ArrowLeft,
+  BringToFront,
+  Frame as FrameIcon,
+  Image as ImageIcon,
+  Minus,
+  MousePointer2,
+  Pencil,
+  Plus,
+  RotateCcw,
+  SendToBack,
+  StickyNote,
+  Ticket,
+  Trash2,
+  Type as TypeIcon,
+} from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { uploadMuralImage } from "@/lib/supabase/storage";
 import { MuralElementView } from "./MuralElementView";
@@ -11,6 +27,49 @@ const MIN_SCALE = 0.2;
 const MAX_SCALE = 2.5;
 
 type View = { scale: number; x: number; y: number };
+
+const ELEMENT_TYPE_LABEL: Record<MuralElementType, string> = {
+  STICKY_NOTE: "Post-it",
+  TEXT: "Texto",
+  FRAME: "Marco",
+  IMAGE: "Imagen",
+  DRAWING: "Dibujo",
+};
+
+function ToolButton({
+  icon,
+  label,
+  onClick,
+  active,
+  hideLabel,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  onClick: () => void;
+  active?: boolean;
+  hideLabel?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={label}
+      aria-label={label}
+      className={`flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium transition-colors ${
+        active ? "bg-accent text-white shadow-sm" : "text-ink/70 hover:bg-bg hover:text-ink"
+      }`}
+    >
+      {icon}
+      <span className={hideLabel ? "hidden sm:inline" : undefined} aria-hidden={hideLabel}>
+        {label}
+      </span>
+    </button>
+  );
+}
+
+function Divider() {
+  return <div className="mx-0.5 h-6 w-px shrink-0 bg-border" />;
+}
 
 async function api(url: string, init?: RequestInit) {
   const res = await fetch(url, {
@@ -312,72 +371,93 @@ export function MuralCanvas({
 
   return (
     <div className="flex h-[calc(100vh-3.5rem)] flex-col">
-      <header className="flex flex-wrap items-center gap-2 border-b border-border bg-surface px-3 py-2">
-        <Link href={`/projects/${projectId}/murals`} className="text-xs text-accent underline underline-offset-4">
-          ← Murales
-        </Link>
-        <span className="text-sm font-medium">{projectName}</span>
+      <header className="flex flex-wrap items-center gap-1 border-b border-border bg-surface px-3 py-2 shadow-sm">
+        <div className="flex items-center gap-3 pr-1">
+          <Link
+            href={`/projects/${projectId}/murals`}
+            className="flex items-center gap-1 text-xs text-accent hover:underline underline-offset-4"
+          >
+            <ArrowLeft size={14} />
+            Murales
+          </Link>
+          <span className="hidden truncate font-heading text-sm font-medium text-ink sm:inline">
+            {projectName}
+          </span>
+        </div>
 
         {canEdit && (
-          <div className="ml-4 flex flex-wrap items-center gap-1">
-            <button
-              type="button"
-              onClick={() => setMode("select")}
-              className={`rounded px-2 py-1 text-xs ${mode === "select" ? "bg-accent text-white" : "hover:bg-bg"}`}
-            >
-              Seleccionar
-            </button>
-            <button
-              type="button"
-              onClick={() => setMode("draw")}
-              className={`rounded px-2 py-1 text-xs ${mode === "draw" ? "bg-accent text-white" : "hover:bg-bg"}`}
-            >
-              Dibujar
-            </button>
-            <button type="button" onClick={addStickyNote} className="rounded px-2 py-1 text-xs hover:bg-bg">
-              + Post-it
-            </button>
-            <button type="button" onClick={addText} className="rounded px-2 py-1 text-xs hover:bg-bg">
-              + Texto
-            </button>
-            <button type="button" onClick={addFrame} className="rounded px-2 py-1 text-xs hover:bg-bg">
-              + Marco
-            </button>
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="rounded px-2 py-1 text-xs hover:bg-bg"
-            >
-              + Imagen
-            </button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                e.target.value = "";
-                if (file) addImage(file);
-              }}
-            />
-          </div>
+          <>
+            <Divider />
+            <div className="flex items-center gap-0.5 rounded-lg bg-bg p-0.5">
+              <ToolButton
+                icon={<MousePointer2 size={15} />}
+                label="Seleccionar"
+                active={mode === "select"}
+                onClick={() => setMode("select")}
+                hideLabel
+              />
+              <ToolButton
+                icon={<Pencil size={15} />}
+                label="Dibujar"
+                active={mode === "draw"}
+                onClick={() => setMode("draw")}
+                hideLabel
+              />
+            </div>
+            <Divider />
+            <div className="flex flex-wrap items-center gap-0.5">
+              <ToolButton icon={<StickyNote size={15} />} label="Post-it" onClick={addStickyNote} hideLabel />
+              <ToolButton icon={<TypeIcon size={15} />} label="Texto" onClick={addText} hideLabel />
+              <ToolButton icon={<FrameIcon size={15} />} label="Marco" onClick={addFrame} hideLabel />
+              <ToolButton
+                icon={<ImageIcon size={15} />}
+                label="Imagen"
+                onClick={() => fileInputRef.current?.click()}
+                hideLabel
+              />
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  e.target.value = "";
+                  if (file) addImage(file);
+                }}
+              />
+            </div>
+          </>
         )}
 
-        <div className="ml-auto flex items-center gap-1 text-xs">
-          <button type="button" onClick={() => zoomBy(1 / 1.2)} className="rounded px-2 py-1 hover:bg-bg">
-            −
+        <div className="ml-auto flex items-center gap-0.5 rounded-lg bg-bg p-0.5">
+          <button
+            type="button"
+            onClick={() => zoomBy(1 / 1.2)}
+            aria-label="Alejar"
+            className="flex h-7 w-7 items-center justify-center rounded-md text-ink/70 hover:bg-surface hover:text-ink"
+          >
+            <Minus size={14} />
           </button>
-          <span className="w-10 text-center text-ink/60">{Math.round(view.scale * 100)}%</span>
-          <button type="button" onClick={() => zoomBy(1.2)} className="rounded px-2 py-1 hover:bg-bg">
-            +
+          <span className="w-11 text-center text-xs font-medium tabular-nums text-ink/60">
+            {Math.round(view.scale * 100)}%
+          </span>
+          <button
+            type="button"
+            onClick={() => zoomBy(1.2)}
+            aria-label="Acercar"
+            className="flex h-7 w-7 items-center justify-center rounded-md text-ink/70 hover:bg-surface hover:text-ink"
+          >
+            <Plus size={14} />
           </button>
+          <div className="mx-0.5 h-5 w-px bg-border" />
           <button
             type="button"
             onClick={() => setView({ scale: 1, x: 0, y: 0 })}
-            className="rounded px-2 py-1 hover:bg-bg"
+            aria-label="Restablecer vista"
+            className="flex h-7 w-7 items-center justify-center rounded-md text-ink/70 hover:bg-surface hover:text-ink"
           >
-            Reset
+            <RotateCcw size={13} />
           </button>
         </div>
       </header>
@@ -389,47 +469,58 @@ export function MuralCanvas({
       )}
 
       {selected && canEdit && (
-        <div className="flex flex-wrap items-center gap-2 border-b border-border bg-surface px-3 py-2 text-xs">
-          <span className="font-medium">Elemento seleccionado</span>
+        <div className="flex flex-wrap items-center gap-1 border-b border-border bg-surface px-3 py-2 shadow-sm">
+          <span className="mr-1 shrink-0 text-xs font-medium text-ink/50">
+            {ELEMENT_TYPE_LABEL[selected.type]}
+          </span>
+
           {(selected.type === "STICKY_NOTE" || selected.type === "DRAWING") && (
-            <div className="flex gap-1">
-              {STICKY_COLORS.map((c) => (
-                <button
-                  key={c}
-                  type="button"
-                  onClick={() => setColor(c)}
-                  className="h-5 w-5 rounded-full border border-border"
-                  style={{ backgroundColor: c }}
-                  aria-label={`Color ${c}`}
-                />
-              ))}
-            </div>
+            <>
+              <div className="flex items-center gap-1 px-1">
+                {STICKY_COLORS.map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => setColor(c)}
+                    aria-label={`Color ${c}`}
+                    className={`h-5 w-5 rounded-full border transition-transform ${
+                      selected.color === c ? "scale-110 border-ink ring-2 ring-accent ring-offset-1" : "border-border"
+                    }`}
+                    style={{ backgroundColor: c }}
+                  />
+                ))}
+              </div>
+              <Divider />
+            </>
           )}
-          <button type="button" onClick={() => reorder("front")} className="rounded px-2 py-1 hover:bg-bg">
-            Traer al frente
-          </button>
-          <button type="button" onClick={() => reorder("back")} className="rounded px-2 py-1 hover:bg-bg">
-            Enviar atrás
-          </button>
+
+          <ToolButton icon={<BringToFront size={14} />} label="Al frente" onClick={() => reorder("front")} />
+          <ToolButton icon={<SendToBack size={14} />} label="Atrás" onClick={() => reorder("back")} />
+
           {selected.type === "STICKY_NOTE" && taskIssueTypeId && (
-            <button
-              type="button"
-              onClick={convertToIssue}
-              disabled={converting}
-              className="rounded px-2 py-1 text-accent hover:bg-bg"
-            >
-              {typeof selected.content.issueKey === "string"
-                ? `Vinculado a ${selected.content.issueKey}`
-                : converting
-                  ? "Convirtiendo…"
-                  : "Convertir en incidencia"}
-            </button>
+            <>
+              <Divider />
+              <ToolButton
+                icon={<Ticket size={14} />}
+                label={
+                  typeof selected.content.issueKey === "string"
+                    ? String(selected.content.issueKey)
+                    : converting
+                      ? "Convirtiendo…"
+                      : "Convertir en incidencia"
+                }
+                active={typeof selected.content.issueKey === "string"}
+                onClick={convertToIssue}
+              />
+            </>
           )}
+
           <button
             type="button"
             onClick={deleteSelected}
-            className="ml-auto rounded px-2 py-1 text-red-600 hover:bg-red-50"
+            className="ml-auto flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50"
           >
+            <Trash2 size={14} />
             Eliminar
           </button>
         </div>
