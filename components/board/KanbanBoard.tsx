@@ -33,11 +33,11 @@ function Column({
   const { setNodeRef, isOver } = useDroppable({ id: status.id });
 
   return (
-    <div className="flex w-72 shrink-0 flex-col rounded-lg bg-bg sm:w-80">
+    <div className="flex min-w-0 flex-col rounded-lg bg-bg">
       <div className="flex items-center gap-2 px-2 py-2">
-        <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: status.color }} />
-        <h3 className="font-heading text-sm font-semibold">{status.name}</h3>
-        <span className="ml-auto text-xs text-ink/50">{issues.length}</span>
+        <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: status.color }} />
+        <h3 className="truncate font-heading text-sm font-semibold">{status.name}</h3>
+        <span className="ml-auto shrink-0 text-xs text-ink/50">{issues.length}</span>
       </div>
       <SortableContext items={issues.map((i) => i.id)} strategy={verticalListSortingStrategy}>
         <div
@@ -133,7 +133,10 @@ export function KanbanBoard({
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
-        <div className="flex gap-4 overflow-x-auto pb-4">
+        <div
+          className="grid gap-2 sm:gap-4"
+          style={{ gridTemplateColumns: `repeat(${Math.max(statuses.length, 1)}, minmax(0, 1fr))` }}
+        >
           {statuses.map((status) => (
             <Column key={status.id} status={status} issues={issuesByStatus.get(status.id) ?? []} />
           ))}

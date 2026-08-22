@@ -57,11 +57,11 @@ export function IssueCard({ issue }: { issue: BoardIssue }) {
       >
         {issue.title}
       </Link>
-      <div className="mt-2 flex items-center justify-between text-xs text-ink/60">
-        <span>{PRIORITY_LABEL[issue.priority]}</span>
+      <div className="mt-2 flex min-w-0 items-center justify-between gap-1 text-xs text-ink/60">
+        <span className="truncate">{PRIORITY_LABEL[issue.priority]}</span>
         {issue.assignee && (
           <span
-            className="flex h-6 w-6 items-center justify-center rounded-full bg-accent/10 text-[10px] font-medium text-accent"
+            className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent/10 text-[10px] font-medium text-accent"
             title={issue.assignee.name ?? issue.assignee.email}
           >
             {(issue.assignee.name ?? issue.assignee.email).slice(0, 2).toUpperCase()}

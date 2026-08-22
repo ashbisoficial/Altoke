@@ -39,6 +39,9 @@ app/
   issues/[id]/                      → detalle de incidencia (comentarios, adjuntos, subtareas, enlaces)
   projects/[id]/workflow/           → editor de estados y transiciones del flujo de trabajo
   projects/[id]/members/            → gestión de miembros y roles del proyecto
+  projects/[id]/tests/              → hub de Xray: casos de prueba + planes de prueba del proyecto
+  tests/[id]/                       → detalle de un caso de prueba (pasos, precondiciones, requisitos)
+  test-plans/[id]/                  → matriz de ejecución (casos × ejecuciones) de un plan
   api/                              → route handlers (REST-ish, con Zod + Prisma transactions)
 components/
   ui/                               → botones, inputs
@@ -47,6 +50,7 @@ components/
   issue/                            → IssueDetail y sus secciones (comentarios, adjuntos, enlaces, subtareas)
   workflow/                         → WorkflowEditor
   members/                          → ProjectMembersManager
+  tests/                            → TestCaseForm, TestPlanForm, TestCaseDetail, TestMatrix (Xray)
   dashboard/                        → formularios de organización/proyecto
 lib/
   prisma.ts                         → cliente Prisma (singleton)
@@ -67,6 +71,6 @@ prisma/
 
 ## Estado actual
 
-Construido: autenticación, organizaciones, proyectos, workflow por defecto, tipos de incidencia, tablero Kanban con drag-and-drop validado contra el workflow, detalle de incidencia (título/descripción/prioridad/asignado/sprint/puntos, comentarios, adjuntos vía Supabase Storage, subtareas, enlaces entre incidencias), backlog con sprints (arrastrar para asignar), editor de estados/transiciones del workflow, y gestión de miembros/roles por proyecto.
+Construido: autenticación, organizaciones, proyectos, workflow por defecto, tipos de incidencia, tablero Kanban con drag-and-drop validado contra el workflow, detalle de incidencia (título/descripción/prioridad/asignado/sprint/puntos, comentarios, adjuntos vía Supabase Storage, subtareas, enlaces entre incidencias), backlog con sprints (arrastrar para asignar), editor de estados/transiciones del workflow, gestión de miembros/roles por proyecto, y el módulo **Xray**: casos de prueba (pasos + precondiciones) trazados a requisitos (Historia/Épica) con % de cobertura, planes de prueba, y una matriz de ejecución (casos × ejecuciones, celdas de color por estado: aprobado/fallido/bloqueado/sin ejecutar).
 
-Pendiente (ver el plan original): módulo Xray (esquema ya incluido en `schema.prisma`, falta la UI), zona de Mural.
+Pendiente (ver el plan original): zona de Mural (pizarra colaborativa con Supabase Realtime).

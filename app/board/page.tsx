@@ -52,6 +52,9 @@ export default async function BoardPage({
             <Link href={`/projects/${project.id}/workflow`} className="hover:text-accent hover:underline">
               Flujo de trabajo
             </Link>
+            <Link href={`/projects/${project.id}/tests`} className="hover:text-accent hover:underline">
+              Pruebas
+            </Link>
             <Link href={`/projects/${project.id}/members`} className="hover:text-accent hover:underline">
               Miembros
             </Link>
