@@ -4,7 +4,7 @@ Herramienta de gestión de proyectos (tipo Jira) con pizarra colaborativa (tipo 
 
 ## Stack
 
-- Next.js 14 (App Router) + TypeScript
+- Next.js 15 (App Router) + TypeScript
 - Prisma + PostgreSQL (Supabase)
 - Supabase Auth (email/password + magic link)
 - Tailwind CSS con los tokens de marca de Altoke
@@ -82,3 +82,10 @@ Construido: autenticación, organizaciones, proyectos, workflow por defecto, tip
 Construido también el **Mural**: lienzo infinito con pan (arrastrar el fondo) y zoom (rueda del mouse / pellizco táctil / botones +−), post-its de color, notas de texto, marcos, imágenes (subidas a Supabase Storage), dibujo libre a mano alzada, mover/redimensionar/recolorear/traer al frente/enviar atrás/eliminar cualquier elemento, colaboración en vivo entre pestañas/usuarios vía Supabase Realtime (canal por mural), y un botón para convertir un post-it en una incidencia real del proyecto.
 
 No queda ningún bloque grande pendiente del plan original — lo que sigue es pulir y probar con datos reales.
+
+## Seguridad y dependencias
+
+- El proyecto se actualizó de Next.js 14 a **15.5.23** para corregir ~21 CVEs conocidas de Next.js (DoS, SSRF, cache poisoning) que no tenían parche disponible en la rama 14.x. `npm audit` queda limpio salvo dos hallazgos sin exposición real en este proyecto:
+  - `deepmerge-ts` (vía `prisma`/`@prisma/config`): solo se ejecuta al fusionar el archivo de configuración de Prisma en build/dev time, con un schema que nosotros mismos escribimos — no procesa nada que llegue de una request externa.
+  - `postcss@8.4.31` empaquetado *dentro* de `next/` (build interno de Next, distinto del `postcss` de nivel superior del proyecto, que ya está en una versión parcheada): solo procesa el CSS que nosotros mismos escribimos en el build, nunca CSS de un usuario final.
+  - Revisa este apartado de vez en cuando (`npm audit`) — si en el futuro se usan `next/image`, Server Actions, `rewrites()` o `next/script`, vale la pena repetir este análisis porque esas superficies sí quedaron cubiertas por varias de las CVEs corregidas.
