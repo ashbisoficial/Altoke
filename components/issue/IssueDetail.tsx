@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { ArrowLeft, X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { uploadAttachment } from "@/lib/supabase/storage";
@@ -148,9 +149,10 @@ export function IssueDetail({
     <main className="mx-auto max-w-4xl px-4 py-6">
       <Link
         href={`/board?projectId=${project.id}`}
-        className="text-xs text-accent underline underline-offset-4"
+        className="flex w-fit items-center gap-1 text-xs text-accent hover:underline underline-offset-4"
       >
-        ← Volver al tablero
+        <ArrowLeft size={13} />
+        Volver al tablero
       </Link>
 
       <div className="mt-3 flex items-center gap-2">
@@ -450,10 +452,10 @@ function LinksSection({
               <button
                 type="button"
                 onClick={() => removeLink(l.id)}
-                className="text-xs text-ink/40 hover:text-red-600"
+                className="text-ink/40 hover:text-red-600"
                 aria-label="Quitar enlace"
               >
-                ✕
+                <X size={14} />
               </button>
             </li>
           ))}
@@ -557,10 +559,10 @@ function AttachmentsSection({
                 <button
                   type="button"
                   onClick={() => removeAttachment(a.id)}
-                  className="text-xs text-ink/40 hover:text-red-600"
+                  className="text-ink/40 hover:text-red-600"
                   aria-label="Eliminar adjunto"
                 >
-                  ✕
+                  <X size={14} />
                 </button>
               )}
             </li>

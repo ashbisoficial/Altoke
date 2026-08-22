@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { useListSelection } from "@/lib/hooks/useListSelection";
 
 export function CreateProjectForm({
   organizations,
@@ -12,21 +14,11 @@ export function CreateProjectForm({
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [organizationId, setOrganizationId] = useState(organizations[0]?.id ?? "");
+  const [organizationId, setOrganizationId] = useListSelection(organizations);
   const [name, setName] = useState("");
   const [key, setKey] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  // The org list can go from empty to populated (or change) after this
-  // component has already mounted — keep the selection in sync instead of
-  // silently submitting the stale initial value.
-  useEffect(() => {
-    if (organizations.length === 0) return;
-    if (!organizations.some((org) => org.id === organizationId)) {
-      setOrganizationId(organizations[0].id);
-    }
-  }, [organizations, organizationId]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -54,7 +46,8 @@ export function CreateProjectForm({
   if (!open) {
     return (
       <Button variant="secondary" onClick={() => setOpen(true)}>
-        + Nuevo proyecto
+        <Plus size={14} />
+        Nuevo proyecto
       </Button>
     );
   }

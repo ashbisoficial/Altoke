@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 
@@ -35,7 +36,8 @@ export function TestPlanForm({ projectId }: { projectId: string }) {
   if (!open) {
     return (
       <Button variant="secondary" onClick={() => setOpen(true)}>
-        + Plan de pruebas
+        <Plus size={14} />
+        Plan de pruebas
       </Button>
     );
   }

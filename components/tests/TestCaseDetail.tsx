@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { ArrowLeft, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { useListSelection } from "@/lib/hooks/useListSelection";
 
 type Step = { step: string; expectedResult?: string };
 
@@ -48,7 +50,7 @@ export function TestCaseDetail({
   const [steps, setSteps] = useState<Step[]>(
     testCase.steps.length > 0 ? testCase.steps : [{ step: "", expectedResult: "" }],
   );
-  const [requirementId, setRequirementId] = useState(otherRequirements[0]?.id ?? "");
+  const [requirementId, setRequirementId] = useListSelection(otherRequirements);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -91,8 +93,12 @@ export function TestCaseDetail({
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-6">
-      <Link href={`/issues/${testCase.issue.id}`} className="text-xs text-accent underline underline-offset-4">
-        ← {testCase.issue.key}
+      <Link
+        href={`/issues/${testCase.issue.id}`}
+        className="flex w-fit items-center gap-1 text-xs text-accent hover:underline underline-offset-4"
+      >
+        <ArrowLeft size={13} />
+        {testCase.issue.key}
       </Link>
       <h1 className="mt-2 font-heading text-2xl font-semibold">{testCase.issue.title}</h1>
 
@@ -128,9 +134,10 @@ export function TestCaseDetail({
               <button
                 type="button"
                 onClick={() => setSteps((prev) => prev.filter((_, idx) => idx !== i))}
-                className="shrink-0 text-xs text-ink/40 hover:text-red-600"
+                aria-label="Quitar paso"
+                className="shrink-0 text-ink/40 hover:text-red-600"
               >
-                ✕
+                <X size={14} />
               </button>
             </div>
           ))}
@@ -139,9 +146,10 @@ export function TestCaseDetail({
           <button
             type="button"
             onClick={() => setSteps((prev) => [...prev, { step: "", expectedResult: "" }])}
-            className="text-xs text-accent underline underline-offset-4"
+            className="flex items-center gap-1 text-xs text-accent hover:underline underline-offset-4"
           >
-            + Añadir paso
+            <Plus size={12} />
+            Añadir paso
           </button>
         </div>
         <Button onClick={saveSteps} disabled={saving} className="mt-3">
@@ -163,9 +171,10 @@ export function TestCaseDetail({
                 <button
                   type="button"
                   onClick={() => removeRequirement(r.issue.id)}
-                  className="text-xs text-ink/40 hover:text-red-600"
+                  aria-label="Quitar requisito"
+                  className="text-ink/40 hover:text-red-600"
                 >
-                  ✕
+                  <X size={14} />
                 </button>
               </li>
             ))}

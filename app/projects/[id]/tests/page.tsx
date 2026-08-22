@@ -5,6 +5,7 @@ import { getSessionUser } from "@/lib/auth";
 import { isProjectMember } from "@/lib/permissions";
 import { TestCaseForm } from "@/components/tests/TestCaseForm";
 import { TestPlanForm } from "@/components/tests/TestPlanForm";
+import { ProjectNav } from "@/components/project/ProjectNav";
 
 const RUN_STATUS_COLOR: Record<string, string> = {
   PASSED: "#16A34A",
@@ -55,11 +56,9 @@ export default async function ProjectTestsPage({ params }: { params: Promise<{ i
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-6">
-      <header className="mb-6">
-        <Link href={`/board?projectId=${project.id}`} className="text-xs text-accent underline underline-offset-4">
-          ← Tablero
-        </Link>
+      <header className="mb-6 flex flex-col gap-3">
         <h1 className="font-heading text-2xl font-semibold">Pruebas — {project.name}</h1>
+        <ProjectNav projectId={project.id} active="tests" />
       </header>
 
       {coveragePct !== null && (

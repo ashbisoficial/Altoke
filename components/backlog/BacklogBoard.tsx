@@ -15,6 +15,7 @@ import {
   type DragStartEvent,
 } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
+import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { BacklogRow, type BacklogIssue } from "./BacklogRow";
 
@@ -171,7 +172,8 @@ export function BacklogBoard({
           className="w-64 rounded-md border border-border bg-surface px-3 py-1.5 text-sm"
         />
         <Button type="submit" variant="secondary" disabled={creatingSprint}>
-          + Sprint
+          <Plus size={14} />
+          Sprint
         </Button>
       </form>
 

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 
@@ -63,7 +64,8 @@ export function TestCaseForm({
   if (!open) {
     return (
       <Button onClick={() => setOpen(true)} className="shrink-0">
-        + Caso de prueba
+        <Plus size={14} />
+        Caso de prueba
       </Button>
     );
   }
@@ -110,9 +112,10 @@ export function TestCaseForm({
               <button
                 type="button"
                 onClick={() => setSteps((prev) => prev.filter((_, idx) => idx !== i))}
-                className="shrink-0 text-xs text-ink/40 hover:text-red-600"
+                aria-label="Quitar paso"
+                className="shrink-0 text-ink/40 hover:text-red-600"
               >
-                ✕
+                <X size={14} />
               </button>
             </div>
           ))}
@@ -120,9 +123,10 @@ export function TestCaseForm({
         <button
           type="button"
           onClick={() => setSteps((prev) => [...prev, { step: "", expectedResult: "" }])}
-          className="mt-1 text-xs text-accent underline underline-offset-4"
+          className="mt-1 flex items-center gap-1 text-xs text-accent hover:underline underline-offset-4"
         >
-          + Añadir paso
+          <Plus size={12} />
+          Añadir paso
         </button>
       </div>
 

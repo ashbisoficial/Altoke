@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { LogOut } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/Button";
 
@@ -16,6 +17,7 @@ export function LogoutButton() {
 
   return (
     <Button variant="secondary" onClick={handleLogout}>
+      <LogOut size={14} />
       Cerrar sesión
     </Button>
   );

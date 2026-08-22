@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/auth";
 import { isProjectMember } from "@/lib/permissions";
 import { CreateMuralForm } from "@/components/mural/CreateMuralForm";
+import { ProjectNav } from "@/components/project/ProjectNav";
 
 export default async function ProjectMuralsPage({ params }: { params: Promise<{ id: string }> }) {
   const user = await getSessionUser();
@@ -23,14 +24,12 @@ export default async function ProjectMuralsPage({ params }: { params: Promise<{ 
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-6">
-      <header className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <Link href={`/board?projectId=${project.id}`} className="text-xs text-accent underline underline-offset-4">
-            ← Tablero
-          </Link>
+      <header className="mb-6 flex flex-col gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <h1 className="font-heading text-2xl font-semibold">Murales — {project.name}</h1>
+          <CreateMuralForm projectId={project.id} />
         </div>
-        <CreateMuralForm projectId={project.id} />
+        <ProjectNav projectId={project.id} active="murals" />
       </header>
 
       {murals.length === 0 ? (

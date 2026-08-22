@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { useListSelection } from "@/lib/hooks/useListSelection";
 
 type Status = {
   id: string;
@@ -43,8 +45,8 @@ export function WorkflowEditor({
   const [savingStatus, setSavingStatus] = useState(false);
 
   const [transitionName, setTransitionName] = useState("");
-  const [fromStatusId, setFromStatusId] = useState(statuses[0]?.id ?? "");
-  const [toStatusId, setToStatusId] = useState(statuses[1]?.id ?? statuses[0]?.id ?? "");
+  const [fromStatusId, setFromStatusId] = useListSelection(statuses);
+  const [toStatusId, setToStatusId] = useListSelection(statuses);
   const [savingTransition, setSavingTransition] = useState(false);
 
   async function addStatus(e: React.FormEvent) {
@@ -199,7 +201,8 @@ export function WorkflowEditor({
               />
             </div>
             <Button type="submit" disabled={savingStatus}>
-              + Estado
+              <Plus size={14} />
+              Estado
             </Button>
           </form>
         )}
@@ -268,7 +271,8 @@ export function WorkflowEditor({
               </select>
             </div>
             <Button type="submit" disabled={savingTransition}>
-              + Transición
+              <Plus size={14} />
+              Transición
             </Button>
           </form>
         )}

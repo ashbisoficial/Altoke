@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 
@@ -47,7 +48,8 @@ export function CreateOrgForm({ onCreated }: { onCreated?: () => void }) {
   if (!open) {
     return (
       <Button variant="secondary" onClick={() => setOpen(true)}>
-        + Nueva organización
+        <Plus size={14} />
+        Nueva organización
       </Button>
     );
   }

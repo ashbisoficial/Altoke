@@ -1,10 +1,12 @@
 import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/auth";
 import { isProjectMember } from "@/lib/permissions";
 import { KanbanBoard } from "@/components/board/KanbanBoard";
 import { CreateIssueForm } from "@/components/board/CreateIssueForm";
+import { ProjectNav } from "@/components/project/ProjectNav";
 
 export default async function BoardPage({
   searchParams,
@@ -39,34 +41,24 @@ export default async function BoardPage({
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-6">
-      <header className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <Link href="/dashboard" className="text-xs text-accent underline underline-offset-4">
-            ← Panel
-          </Link>
-          <h1 className="font-heading text-2xl font-semibold">{project.name}</h1>
-          <nav className="mt-1 flex gap-3 text-xs text-ink/60">
-            <Link href={`/backlog?projectId=${project.id}`} className="hover:text-accent hover:underline">
-              Backlog
+      <header className="mb-5 flex flex-col gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <Link
+              href="/dashboard"
+              className="flex items-center gap-1 text-xs text-accent hover:underline underline-offset-4"
+            >
+              <ArrowLeft size={13} />
+              Panel
             </Link>
-            <Link href={`/projects/${project.id}/workflow`} className="hover:text-accent hover:underline">
-              Flujo de trabajo
-            </Link>
-            <Link href={`/projects/${project.id}/tests`} className="hover:text-accent hover:underline">
-              Pruebas
-            </Link>
-            <Link href={`/projects/${project.id}/murals`} className="hover:text-accent hover:underline">
-              Murales
-            </Link>
-            <Link href={`/projects/${project.id}/members`} className="hover:text-accent hover:underline">
-              Miembros
-            </Link>
-          </nav>
+            <h1 className="font-heading text-2xl font-semibold">{project.name}</h1>
+          </div>
+          <CreateIssueForm
+            projectId={project.id}
+            issueTypes={project.issueTypes.map((t) => ({ id: t.id, name: t.name }))}
+          />
         </div>
-        <CreateIssueForm
-          projectId={project.id}
-          issueTypes={project.issueTypes.map((t) => ({ id: t.id, name: t.name }))}
-        />
+        <ProjectNav projectId={project.id} active="board" />
       </header>
 
       <KanbanBoard

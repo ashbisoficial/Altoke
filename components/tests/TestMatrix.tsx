@@ -3,8 +3,10 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { useListSelection } from "@/lib/hooks/useListSelection";
 
 type RunStatus = "NOT_RUN" | "PASSED" | "FAILED" | "BLOCKED";
 
@@ -45,7 +47,7 @@ export function TestMatrix({
   const [error, setError] = useState<string | null>(null);
   const [newExecutionName, setNewExecutionName] = useState("");
   const [creatingExecution, setCreatingExecution] = useState(false);
-  const [selectedCaseId, setSelectedCaseId] = useState(availableCases[0]?.id ?? "");
+  const [selectedCaseId, setSelectedCaseId] = useListSelection(availableCases);
 
   function openRun(run: Run) {
     setActiveRun(run);
@@ -124,7 +126,8 @@ export function TestMatrix({
             placeholder="Nombre de la ejecución"
           />
           <Button type="submit" disabled={creatingExecution || rows.length === 0}>
-            + Ejecución
+            <Plus size={14} />
+            Ejecución
           </Button>
         </form>
         {availableCases.length > 0 && (
@@ -141,7 +144,8 @@ export function TestMatrix({
               ))}
             </select>
             <Button variant="secondary" onClick={addCase}>
-              + Caso al plan
+              <Plus size={14} />
+              Caso al plan
             </Button>
           </div>
         )}

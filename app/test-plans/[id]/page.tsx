@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/auth";
@@ -41,9 +42,10 @@ export default async function TestPlanPage({ params }: { params: Promise<{ id: s
       <header className="mb-6">
         <Link
           href={`/projects/${testPlan.projectId}/tests`}
-          className="text-xs text-accent underline underline-offset-4"
+          className="flex w-fit items-center gap-1 text-xs text-accent hover:underline underline-offset-4"
         >
-          ← Pruebas — {testPlan.project.name}
+          <ArrowLeft size={13} />
+          Pruebas — {testPlan.project.name}
         </Link>
         <h1 className="font-heading text-2xl font-semibold">{testPlan.name}</h1>
       </header>

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 
@@ -34,7 +35,8 @@ export function CreateMuralForm({ projectId }: { projectId: string }) {
   if (!open) {
     return (
       <Button onClick={() => setOpen(true)} className="shrink-0">
-        + Nuevo mural
+        <Plus size={14} />
+        Nuevo mural
       </Button>
     );
   }

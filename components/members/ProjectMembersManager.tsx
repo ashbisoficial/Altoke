@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { useListSelection } from "@/lib/hooks/useListSelection";
 
 type Role = { id: string; name: string };
 type Member = {
@@ -27,7 +28,7 @@ export function ProjectMembersManager({
 }) {
   const router = useRouter();
   const [email, setEmail] = useState("");
-  const [roleId, setRoleId] = useState(roles[0]?.id ?? "");
+  const [roleId, setRoleId] = useListSelection(roles);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

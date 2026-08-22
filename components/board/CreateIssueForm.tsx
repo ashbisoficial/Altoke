@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { useListSelection } from "@/lib/hooks/useListSelection";
 
 export function CreateIssueForm({
   projectId,
@@ -15,7 +17,7 @@ export function CreateIssueForm({
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
-  const [issueTypeId, setIssueTypeId] = useState(issueTypes[0]?.id ?? "");
+  const [issueTypeId, setIssueTypeId] = useListSelection(issueTypes);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -42,7 +44,8 @@ export function CreateIssueForm({
   if (!open) {
     return (
       <Button onClick={() => setOpen(true)} className="shrink-0">
-        + Nueva incidencia
+        <Plus size={14} />
+        Nueva incidencia
       </Button>
     );
   }
