@@ -1,10 +1,10 @@
 import Link from "next/link";
+import { Users } from "lucide-react";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/auth";
 import { CreateOrgForm } from "@/components/dashboard/CreateOrgForm";
 import { CreateProjectForm } from "@/components/dashboard/CreateProjectForm";
-import { LogoutButton } from "@/components/dashboard/LogoutButton";
 
 export default async function DashboardPage() {
   const user = await getSessionUser();
@@ -23,15 +23,12 @@ export default async function DashboardPage() {
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-10">
-      <header className="mb-8 flex items-center justify-between">
-        <div>
-          <h1 className="font-heading text-3xl font-semibold">Altoke</h1>
-          <p className="text-sm text-ink/60">
-            {user.name ?? user.email} · {organizations.length} organización
-            {organizations.length === 1 ? "" : "es"}
-          </p>
-        </div>
-        <LogoutButton />
+      <header className="mb-8">
+        <h1 className="font-heading text-3xl font-semibold">Hola, {user.name ?? user.email}</h1>
+        <p className="text-sm text-ink/60">
+          {organizations.length} organización
+          {organizations.length === 1 ? "" : "es"}
+        </p>
       </header>
 
       <section className="mb-10 flex flex-wrap gap-3">
@@ -48,7 +45,16 @@ export default async function DashboardPage() {
       <div className="flex flex-col gap-8">
         {organizations.map((org) => (
           <section key={org.id}>
-            <h2 className="font-heading text-lg font-semibold">{org.name}</h2>
+            <div className="flex items-center gap-2">
+              <h2 className="font-heading text-lg font-semibold">{org.name}</h2>
+              <Link
+                href={`/organizations/${org.id}/members`}
+                className="flex items-center gap-1 text-xs text-accent hover:underline underline-offset-4"
+              >
+                <Users size={13} />
+                Miembros
+              </Link>
+            </div>
             {org.projects.length === 0 ? (
               <p className="mt-2 text-sm text-ink/60">Sin proyectos todavía.</p>
             ) : (

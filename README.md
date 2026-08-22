@@ -36,20 +36,29 @@ Herramienta de gestión de proyectos (tipo Jira) con pizarra colaborativa (tipo 
 ```
 app/
   login/, signup/, auth/callback/   → autenticación (Supabase Auth)
-  dashboard/                        → organizaciones y proyectos del usuario
-  board/                            → tablero Kanban de un proyecto
-  backlog/                          → backlog + sprints, arrastrar incidencias entre ellos
-  issues/[id]/                      → detalle de incidencia (comentarios, adjuntos, subtareas, enlaces)
-  projects/[id]/workflow/           → editor de estados y transiciones del flujo de trabajo
-  projects/[id]/members/            → gestión de miembros y roles del proyecto
-  projects/[id]/tests/              → hub de Xray: casos de prueba + planes de prueba del proyecto
-  tests/[id]/                       → detalle de un caso de prueba (pasos, precondiciones, requisitos)
-  test-plans/[id]/                  → matriz de ejecución (casos × ejecuciones) de un plan
-  projects/[id]/murals/             → lista de murales del proyecto + crear uno nuevo
-  mural/[boardId]/                  → el lienzo colaborativo (pan/zoom, elementos, tiempo real)
+  invite/[token]/                   → aceptar una invitación (público, no requiere sesión para verla)
+  (app)/                            → grupo de rutas autenticadas, comparten <AppHeader /> (logo, notificaciones, cuenta, salir)
+    dashboard/                      → organizaciones y proyectos del usuario
+    account/                        → perfil (nombre) y cambio de contraseña
+    board/                          → tablero Kanban de un proyecto
+    backlog/                        → backlog + sprints, arrastrar incidencias entre ellos
+    issues/[id]/                    → detalle de incidencia (comentarios, adjuntos, subtareas, enlaces)
+    organizations/[id]/members/     → miembros de la organización + invitar gente nueva
+    projects/[id]/workflow/         → editor de estados y transiciones del flujo de trabajo
+    projects/[id]/members/          → gestión de miembros y roles del proyecto
+    projects/[id]/tests/            → hub de Xray: casos de prueba + planes de prueba del proyecto
+    tests/[id]/                     → detalle de un caso de prueba (pasos, precondiciones, requisitos)
+    test-plans/[id]/                → matriz de ejecución (casos × ejecuciones) de un plan
+    projects/[id]/murals/           → lista de murales del proyecto + crear uno nuevo
+  mural/[boardId]/                  → el lienzo colaborativo (pan/zoom, elementos, tiempo real) — fuera del grupo (app), tiene su propia barra de herramientas de pantalla completa
   api/                              → route handlers (REST-ish, con Zod + Prisma transactions)
 components/
   ui/                               → botones, inputs
+  layout/                           → AppHeader
+  notifications/                    → NotificationBell (campanita, dropdown, marcar leídas)
+  account/                          → AccountSettings (nombre + contraseña)
+  invitations/                      → AcceptInvitation
+  organizations/                    → OrgMembersManager (miembros + invitar + invitaciones pendientes)
   board/                            → KanbanBoard, IssueCard, formularios del tablero
   backlog/                          → BacklogBoard, BacklogRow
   issue/                            → IssueDetail y sus secciones (comentarios, adjuntos, enlaces, subtareas)
@@ -60,12 +69,13 @@ components/
   dashboard/                        → formularios de organización/proyecto
 lib/
   prisma.ts                         → cliente Prisma (singleton)
-  supabase/                         → clientes de Supabase (browser, server, middleware)
+  supabase/                         → clientes de Supabase (browser, server, middleware, admin)
   auth.ts                           → getSessionUser() — sincroniza el usuario de Supabase con la tabla User
   permissions.ts                    → chequeo de permisos por rol (org y proyecto)
   seed-defaults.ts                  → catálogo de permisos, roles y flujo de trabajo por defecto
+  notifications.ts                  → notify() — crea una notificación in-app
 prisma/
-  schema.prisma                     → esquema completo (identidad, proyectos, workflow, issues, Xray, mural)
+  schema.prisma                     → esquema completo (identidad, proyectos, workflow, issues, Xray, mural, invitaciones, notificaciones)
 ```
 
 ## Convenciones para seguir añadiendo funcionalidad
@@ -81,7 +91,9 @@ Construido: autenticación, organizaciones, proyectos, workflow por defecto, tip
 
 Construido también el **Mural**: lienzo infinito con pan (arrastrar el fondo) y zoom (rueda del mouse / pellizco táctil / botones +−), post-its de color, notas de texto, marcos, imágenes (subidas a Supabase Storage), dibujo libre a mano alzada, mover/redimensionar/recolorear/traer al frente/enviar atrás/eliminar cualquier elemento, colaboración en vivo entre pestañas/usuarios vía Supabase Realtime (canal por mural), y un botón para convertir un post-it en una incidencia real del proyecto.
 
-No queda ningún bloque grande pendiente del plan original — lo que sigue es pulir y probar con datos reales.
+Construido también **cuenta y colaboración**: cambiar nombre y contraseña (`/account`), invitar gente a una organización (y opcionalmente directo a un proyecto) por **correo real** (vía Supabase) **y** con un **enlace para compartir** — funciona aunque el correo no llegue o el plan gratuito limite el envío, gestión de invitaciones pendientes (copiar enlace, cancelar), y notificaciones dentro de la app (campanita con contador, se dispara cuando te asignan una incidencia, comentan algo tuyo, te añaden a un proyecto o te invitan a una organización).
+
+Pendiente del pedido más reciente: vista de calendario (sprints + fechas de entrega) y una experiencia guiada más simple para dividir tareas grandes en pequeñas, pensada para gente sin experiencia en gestión de proyectos.
 
 ## Seguridad y dependencias
 

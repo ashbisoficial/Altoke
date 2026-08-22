@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/auth";
 import { forbidden, notFound, unauthorized, zodErrorResponse } from "@/lib/http";
 import { hasProjectPermission, isProjectMember } from "@/lib/permissions";
+import { notify } from "@/lib/notifications";
 
 const updateIssueSchema = z.object({
   title: z.string().trim().min(1).max(255).optional(),
@@ -67,6 +68,17 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     },
     include: { issueType: true, status: true, assignee: true, reporter: true },
   });
+
+  if (rest.assigneeId && rest.assigneeId !== existing.assigneeId) {
+    await notify({
+      userId: rest.assigneeId,
+      actorId: user.id,
+      type: "ISSUE_ASSIGNED",
+      title: `Te asignaron ${issue.key}`,
+      body: issue.title,
+      link: `/issues/${issue.id}`,
+    });
+  }
 
   return NextResponse.json({ issue });
 }

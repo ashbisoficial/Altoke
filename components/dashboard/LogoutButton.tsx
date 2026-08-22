@@ -5,7 +5,7 @@ import { LogOut } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/Button";
 
-export function LogoutButton() {
+export function LogoutButton({ compact }: { compact?: boolean }) {
   const router = useRouter();
 
   async function handleLogout() {
@@ -13,6 +13,19 @@ export function LogoutButton() {
     await supabase.auth.signOut();
     router.push("/login");
     router.refresh();
+  }
+
+  if (compact) {
+    return (
+      <button
+        type="button"
+        onClick={handleLogout}
+        aria-label="Cerrar sesión"
+        className="flex h-8 w-8 items-center justify-center rounded-md text-ink/70 hover:bg-bg hover:text-ink"
+      >
+        <LogOut size={17} />
+      </button>
+    );
   }
 
   return (

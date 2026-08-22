@@ -23,6 +23,7 @@ model Organization {
   projects    Project[]
   roles       Role[]
   workflows   Workflow[]
+  invitations Invitation[]
 }
 
 /// Mirrors Supabase auth.users.id (uuid) — rows are upserted on first login.
@@ -34,14 +35,16 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  memberships    Membership[]
-  projectMembers ProjectMember[]
-  reportedIssues Issue[]         @relation("IssueReporter")
-  assignedIssues Issue[]         @relation("IssueAssignee")
-  comments       Comment[]
-  attachments    Attachment[]
-  testRunsRun    TestRun[]       @relation("TestRunExecutedBy")
-  muralElements  MuralElement[]  @relation("MuralElementCreatedBy")
+  memberships     Membership[]
+  projectMembers  ProjectMember[]
+  reportedIssues  Issue[]         @relation("IssueReporter")
+  assignedIssues  Issue[]         @relation("IssueAssignee")
+  comments        Comment[]
+  attachments     Attachment[]
+  testRunsRun     TestRun[]       @relation("TestRunExecutedBy")
+  muralElements   MuralElement[]  @relation("MuralElementCreatedBy")
+  invitationsSent Invitation[]    @relation("InvitationInvitedBy")
+  notifications   Notification[]
 }
 
 enum RoleScope {
@@ -57,10 +60,12 @@ model Role {
   organizationId String
   createdAt      DateTime  @default(now())
 
-  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  permissions    RolePermission[]
-  memberships    Membership[]
-  projectMembers ProjectMember[]
+  organization             Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  permissions              RolePermission[]
+  memberships              Membership[]
+  projectMembers           ProjectMember[]
+  invitationsAsOrgRole     Invitation[]     @relation("InvitationOrgRole")
+  invitationsAsProjectRole Invitation[]     @relation("InvitationProjectRole")
 
   @@unique([organizationId, name, scope])
 }
@@ -136,6 +141,7 @@ model Project {
   sprints      Sprint[]
   issueTypes   IssueType[]
   testPlans    TestPlan[]
+  invitations  Invitation[]
 
   @@unique([organizationId, key])
 }
@@ -519,4 +525,65 @@ model MuralElement {
   createdBy User? @relation("MuralElementCreatedBy", fields: [createdById], references: [id])
 
   @@index([boardId])
+}
+
+// ---------------------------------------------------------------------------
+// Invitations & notifications
+// ---------------------------------------------------------------------------
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  REVOKED
+}
+
+/// A pending invite to join an organization (and optionally a specific
+/// project within it). Accepted via a token link — see /invite/[token].
+/// Delivered both by email (Supabase Auth invite) and as a copyable link,
+/// so acceptance is never gated on the email matching exactly.
+model Invitation {
+  id             String           @id @default(cuid())
+  token          String           @unique @default(cuid())
+  email          String
+  organizationId String
+  orgRoleId      String
+  projectId      String?
+  projectRoleId  String?
+  invitedById    String
+  status         InvitationStatus @default(PENDING)
+  emailSent      Boolean          @default(false)
+  createdAt      DateTime         @default(now())
+  expiresAt      DateTime
+  acceptedAt     DateTime?
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  orgRole      Role         @relation("InvitationOrgRole", fields: [orgRoleId], references: [id])
+  project      Project?     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectRole  Role?        @relation("InvitationProjectRole", fields: [projectRoleId], references: [id])
+  invitedBy    User         @relation("InvitationInvitedBy", fields: [invitedById], references: [id])
+
+  @@index([organizationId, status])
+  @@index([email])
+}
+
+enum NotificationType {
+  ISSUE_ASSIGNED
+  ISSUE_COMMENTED
+  PROJECT_MEMBER_ADDED
+  ORG_INVITATION
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  type      NotificationType
+  title     String
+  body      String?
+  link      String?
+  read      Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read, createdAt])
 }

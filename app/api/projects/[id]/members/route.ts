@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/auth";
 import { errorResponse, forbidden, notFound, unauthorized, zodErrorResponse } from "@/lib/http";
 import { hasProjectPermission } from "@/lib/permissions";
+import { notify } from "@/lib/notifications";
 
 const addMemberSchema = z.object({
   email: z.string().trim().email(),
@@ -52,6 +53,14 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const member = await prisma.projectMember.create({
     data: { userId: targetUser.id, projectId, roleId },
     include: { user: { select: { id: true, name: true, email: true, avatarUrl: true } }, role: true },
+  });
+
+  await notify({
+    userId: targetUser.id,
+    actorId: user.id,
+    type: "PROJECT_MEMBER_ADDED",
+    title: `Te añadieron al proyecto ${project.name}`,
+    link: `/board?projectId=${projectId}`,
   });
 
   return NextResponse.json({ member }, { status: 201 });
