@@ -1,0 +1,33 @@
+name: Apply database migrations
+
+# Runs `prisma migrate deploy` against Supabase whenever new migrations are
+# pushed, so the database schema never needs to be updated by hand again.
+# One-time setup required (see README): the migration history must be
+# "baselined" once (via the SQL provided when this workflow was added),
+# and DATABASE_URL / DIRECT_URL must be set as repository secrets.
+on:
+  push:
+    branches:
+      - claude/la-pega-project-tool-8tjmhw
+    paths:
+      - "prisma/migrations/**"
+      - ".github/workflows/prisma-migrate.yml"
+  workflow_dispatch: {}
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - run: npm ci
+
+      - name: Apply pending migrations
+        run: npx prisma migrate deploy
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}

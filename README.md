@@ -31,6 +31,17 @@ Herramienta de gestión de proyectos (tipo Jira) con pizarra colaborativa (tipo 
    ```
 6. Abre `http://localhost:3000` — te redirige a `/login`. Regístrate desde `/signup`.
 
+## Migraciones automáticas (una sola vez)
+
+Este entorno no tiene acceso de red a Supabase, así que las migraciones no se pueden aplicar desde aquí — pero después de este paso único, nunca más hace falta copiar SQL a mano: un GitHub Action (`.github/workflows/prisma-migrate.yml`) corre `prisma migrate deploy` automáticamente cada vez que se sube un cambio con nuevas migraciones.
+
+1. En GitHub: **Settings → Secrets and variables → Actions → New repository secret**. Crea dos:
+   - `DATABASE_URL`
+   - `DIRECT_URL`
+   (mismos valores que en `.env` / Vercel — la conexión a tu Supabase).
+2. Corre el SQL que te haya pasado Claude una última vez en el SQL Editor de Supabase (crea las tablas pendientes y "le avisa" a Prisma que las migraciones anteriores ya se aplicaron a mano, para que no las intente correr de nuevo).
+3. Listo. De ahí en adelante, cada `git push` con migraciones nuevas las aplica solo — revisa la pestaña **Actions** del repo si quieres ver el log de cada corrida.
+
 ## Estructura
 
 ```
