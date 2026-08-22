@@ -45,6 +45,17 @@ export default async function BoardPage({
             ← Panel
           </Link>
           <h1 className="font-heading text-2xl font-semibold">{project.name}</h1>
+          <nav className="mt-1 flex gap-3 text-xs text-ink/60">
+            <Link href={`/backlog?projectId=${project.id}`} className="hover:text-accent hover:underline">
+              Backlog
+            </Link>
+            <Link href={`/projects/${project.id}/workflow`} className="hover:text-accent hover:underline">
+              Flujo de trabajo
+            </Link>
+            <Link href={`/projects/${project.id}/members`} className="hover:text-accent hover:underline">
+              Miembros
+            </Link>
+          </nav>
         </div>
         <CreateIssueForm
           projectId={project.id}

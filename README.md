@@ -21,11 +21,12 @@ Herramienta de gestión de proyectos (tipo Jira) con pizarra colaborativa (tipo 
    npm install
    npx prisma migrate dev
    ```
-4. Arranca el servidor de desarrollo:
+4. Crea un bucket público llamado `attachments` en Supabase Storage (Storage → New bucket, marca "Public bucket") y añade una policy que permita `INSERT`/`SELECT` a usuarios autenticados — se usa para los adjuntos de las incidencias.
+5. Arranca el servidor de desarrollo:
    ```bash
    npm run dev
    ```
-5. Abre `http://localhost:3000` — te redirige a `/login`. Regístrate desde `/signup`.
+6. Abre `http://localhost:3000` — te redirige a `/login`. Regístrate desde `/signup`.
 
 ## Estructura
 
@@ -34,10 +35,18 @@ app/
   login/, signup/, auth/callback/   → autenticación (Supabase Auth)
   dashboard/                        → organizaciones y proyectos del usuario
   board/                            → tablero Kanban de un proyecto
+  backlog/                          → backlog + sprints, arrastrar incidencias entre ellos
+  issues/[id]/                      → detalle de incidencia (comentarios, adjuntos, subtareas, enlaces)
+  projects/[id]/workflow/           → editor de estados y transiciones del flujo de trabajo
+  projects/[id]/members/            → gestión de miembros y roles del proyecto
   api/                              → route handlers (REST-ish, con Zod + Prisma transactions)
 components/
   ui/                               → botones, inputs
   board/                            → KanbanBoard, IssueCard, formularios del tablero
+  backlog/                          → BacklogBoard, BacklogRow
+  issue/                            → IssueDetail y sus secciones (comentarios, adjuntos, enlaces, subtareas)
+  workflow/                         → WorkflowEditor
+  members/                          → ProjectMembersManager
   dashboard/                        → formularios de organización/proyecto
 lib/
   prisma.ts                         → cliente Prisma (singleton)
@@ -58,6 +67,6 @@ prisma/
 
 ## Estado actual
 
-Construido: autenticación, organizaciones, proyectos, workflow por defecto, tipos de incidencia, tablero Kanban con drag-and-drop validado contra el workflow.
+Construido: autenticación, organizaciones, proyectos, workflow por defecto, tipos de incidencia, tablero Kanban con drag-and-drop validado contra el workflow, detalle de incidencia (título/descripción/prioridad/asignado/sprint/puntos, comentarios, adjuntos vía Supabase Storage, subtareas, enlaces entre incidencias), backlog con sprints (arrastrar para asignar), editor de estados/transiciones del workflow, y gestión de miembros/roles por proyecto.
 
-Pendiente (ver el plan original): vista de detalle de incidencia, backlog, editor visual de workflow, gestión de roles en la UI, módulo Xray (esquema ya incluido en `schema.prisma`), zona de Mural.
+Pendiente (ver el plan original): módulo Xray (esquema ya incluido en `schema.prisma`, falta la UI), zona de Mural.

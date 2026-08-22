@@ -92,7 +92,7 @@ model Membership {
 
   user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  role         Role         @relation(fields: [roleId], references: [id])
+  role         Role         @relation(fields: [roleId], references: [id], onDelete: Cascade)
 
   @@unique([userId, organizationId])
 }
@@ -106,7 +106,7 @@ model ProjectMember {
 
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  role    Role    @relation(fields: [roleId], references: [id])
+  role    Role    @relation(fields: [roleId], references: [id], onDelete: Cascade)
 
   @@unique([userId, projectId])
 }
@@ -127,7 +127,7 @@ model Project {
   updatedAt      DateTime @updatedAt
 
   organization Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  workflow     Workflow        @relation(fields: [workflowId], references: [id])
+  workflow     Workflow        @relation(fields: [workflowId], references: [id], onDelete: Cascade)
   members      ProjectMember[]
   issues       Issue[]
   labels       Label[]

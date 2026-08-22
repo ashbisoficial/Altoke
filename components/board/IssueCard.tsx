@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
@@ -49,7 +50,13 @@ export function IssueCard({ issue }: { issue: BoardIssue }) {
           title={issue.issueType.name}
         />
       </div>
-      <p className="pt-3 text-sm font-medium leading-snug">{issue.title}</p>
+      <Link
+        href={`/issues/${issue.id}`}
+        onPointerDown={(e) => e.stopPropagation()}
+        className="block pt-3 text-sm font-medium leading-snug hover:underline"
+      >
+        {issue.title}
+      </Link>
       <div className="mt-2 flex items-center justify-between text-xs text-ink/60">
         <span>{PRIORITY_LABEL[issue.priority]}</span>
         {issue.assignee && (
