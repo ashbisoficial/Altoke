@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -17,6 +17,16 @@ export function CreateProjectForm({
   const [key, setKey] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // The org list can go from empty to populated (or change) after this
+  // component has already mounted — keep the selection in sync instead of
+  // silently submitting the stale initial value.
+  useEffect(() => {
+    if (organizations.length === 0) return;
+    if (!organizations.some((org) => org.id === organizationId)) {
+      setOrganizationId(organizations[0].id);
+    }
+  }, [organizations, organizationId]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
