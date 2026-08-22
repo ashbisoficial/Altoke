@@ -64,7 +64,7 @@ function LoginForm() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-bg px-4">
       <div className="w-full max-w-sm rounded-lg border border-border bg-surface p-8 shadow-sm">
-        <h1 className="font-heading text-2xl font-semibold">La Pega</h1>
+        <h1 className="font-heading text-2xl font-semibold">Altoke</h1>
         <p className="mt-1 text-sm text-ink/60">Inicia sesión para continuar</p>
 
         <div className="mt-6 flex gap-2 rounded-md border border-border p-1 text-sm">

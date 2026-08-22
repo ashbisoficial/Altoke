@@ -1,4 +1,4 @@
-# La Pega
+# Altoke
 
 Herramienta de gestión de proyectos (tipo Jira) con pizarra colaborativa (tipo Mural), pensada para operar 100% en capas gratuitas (Supabase + Vercel).
 
@@ -7,7 +7,7 @@ Herramienta de gestión de proyectos (tipo Jira) con pizarra colaborativa (tipo 
 - Next.js 14 (App Router) + TypeScript
 - Prisma + PostgreSQL (Supabase)
 - Supabase Auth (email/password + magic link)
-- Tailwind CSS con los tokens de marca de La Pega
+- Tailwind CSS con los tokens de marca de Altoke
 - `@dnd-kit` para el tablero Kanban (y, más adelante, el mural)
 
 ## Puesta en marcha

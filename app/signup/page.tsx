@@ -39,7 +39,7 @@ export default function SignupPage() {
     <main className="flex min-h-screen items-center justify-center bg-bg px-4">
       <div className="w-full max-w-sm rounded-lg border border-border bg-surface p-8 shadow-sm">
         <h1 className="font-heading text-2xl font-semibold">Crea tu cuenta</h1>
-        <p className="mt-1 text-sm text-ink/60">Empieza a usar La Pega gratis</p>
+        <p className="mt-1 text-sm text-ink/60">Empieza a usar Altoke gratis</p>
 
         {done ? (
           <p className="mt-6 text-sm text-ink/70">

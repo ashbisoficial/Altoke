@@ -21,7 +21,7 @@ const ibmPlexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "La Pega",
+  title: "Altoke",
   description: "Gestión de proyectos y pizarra colaborativa",
 };
 
