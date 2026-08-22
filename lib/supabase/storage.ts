@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/client";
 
 export const ATTACHMENTS_BUCKET = "attachments";
+export const MURAL_BUCKET = "mural";
 
 /**
  * Uploads a file straight from the browser to Supabase Storage and returns
@@ -15,5 +16,17 @@ export async function uploadAttachment(file: File, issueId: string) {
   if (error) throw error;
 
   const { data } = supabase.storage.from(ATTACHMENTS_BUCKET).getPublicUrl(path);
+  return { fileUrl: data.publicUrl, path };
+}
+
+/** Same idea as uploadAttachment, but for images dropped onto a mural board. */
+export async function uploadMuralImage(file: File, boardId: string) {
+  const supabase = createClient();
+  const path = `${boardId}/${Date.now()}-${file.name}`;
+
+  const { error } = await supabase.storage.from(MURAL_BUCKET).upload(path, file);
+  if (error) throw error;
+
+  const { data } = supabase.storage.from(MURAL_BUCKET).getPublicUrl(path);
   return { fileUrl: data.publicUrl, path };
 }
