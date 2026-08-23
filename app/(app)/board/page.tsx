@@ -35,6 +35,7 @@ export default async function BoardPage({
     include: {
       issueType: { select: { name: true, color: true } },
       assignee: { select: { name: true, email: true, avatarUrl: true } },
+      _count: { select: { children: true } },
     },
     orderBy: { createdAt: "desc" },
   });
@@ -76,6 +77,7 @@ export default async function BoardPage({
           statusId: issue.statusId,
           issueType: issue.issueType,
           assignee: issue.assignee,
+          subtaskCount: issue._count.children,
         }))}
       />
     </main>

@@ -19,13 +19,23 @@ import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { BacklogRow, type BacklogIssue } from "./BacklogRow";
 
-export type BacklogSprint = { id: string; name: string; status: "PLANNED" | "ACTIVE" | "COMPLETED" };
+export type BacklogSprint = {
+  id: string;
+  name: string;
+  status: "PLANNED" | "ACTIVE" | "COMPLETED";
+  startDate: string | null;
+  endDate: string | null;
+};
 
 const SPRINT_STATUS_LABEL: Record<BacklogSprint["status"], string> = {
   PLANNED: "Planeado",
   ACTIVE: "Activo",
   COMPLETED: "Completado",
 };
+
+function toDateInputValue(iso: string | null) {
+  return iso ? iso.slice(0, 10) : "";
+}
 
 function Section({
   id,
@@ -162,6 +172,15 @@ export function BacklogBoard({
     router.refresh();
   }
 
+  async function updateSprintDate(sprintId: string, field: "startDate" | "endDate", value: string) {
+    await fetch(`/api/sprints/${sprintId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ [field]: value ? new Date(value).toISOString() : null }),
+    });
+    router.refresh();
+  }
+
   return (
     <div>
       <form onSubmit={createSprint} className="mb-4 flex gap-2">
@@ -196,8 +215,26 @@ export function BacklogBoard({
             title={sprint.name}
             issues={groups.get(sprint.id) ?? []}
             right={
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <span className="text-xs text-ink/50">{SPRINT_STATUS_LABEL[sprint.status]}</span>
+                <label className="flex items-center gap-1 text-xs text-ink/50">
+                  Del
+                  <input
+                    type="date"
+                    value={toDateInputValue(sprint.startDate)}
+                    onChange={(e) => updateSprintDate(sprint.id, "startDate", e.target.value)}
+                    className="rounded border border-border bg-surface px-1 py-0.5 text-xs"
+                  />
+                </label>
+                <label className="flex items-center gap-1 text-xs text-ink/50">
+                  al
+                  <input
+                    type="date"
+                    value={toDateInputValue(sprint.endDate)}
+                    onChange={(e) => updateSprintDate(sprint.id, "endDate", e.target.value)}
+                    className="rounded border border-border bg-surface px-1 py-0.5 text-xs"
+                  />
+                </label>
                 {sprint.status === "PLANNED" && (
                   <Button variant="ghost" onClick={() => updateSprintStatus(sprint.id, "ACTIVE")}>
                     Iniciar

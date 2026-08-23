@@ -104,7 +104,7 @@ Construido también el **Mural**: lienzo infinito con pan (arrastrar el fondo) y
 
 Construido también **cuenta y colaboración**: cambiar nombre y contraseña (`/account`), invitar gente a una organización (y opcionalmente directo a un proyecto) por **correo real** (vía Supabase) **y** con un **enlace para compartir** — funciona aunque el correo no llegue o el plan gratuito limite el envío, gestión de invitaciones pendientes (copiar enlace, cancelar), y notificaciones dentro de la app (campanita con contador, se dispara cuando te asignan una incidencia, comentan algo tuyo, te añaden a un proyecto o te invitan a una organización).
 
-Pendiente del pedido más reciente: vista de calendario (sprints + fechas de entrega) y una experiencia guiada más simple para dividir tareas grandes en pequeñas, pensada para gente sin experiencia en gestión de proyectos.
+Construido también **calendario y tareas más guiadas**: calendario mensual por proyecto (`/projects/[id]/calendar`) con las fechas de entrega de las incidencias y las fechas de cada sprint (editables directo desde el Backlog); en el detalle de una incidencia, una barra de progreso "X de Y completadas" en las subtareas y un aviso amable sugiriendo dividir una Épica/Historia grande en pasos más chicos cuando todavía no tiene ninguna; al crear una incidencia, una explicación en español simple de qué es cada tipo (Épica, Historia, Tarea, Bug, Subtarea); y un contador de subtareas visible directo en la tarjeta del tablero Kanban.
 
 ## Seguridad y dependencias
 

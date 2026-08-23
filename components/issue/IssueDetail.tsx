@@ -10,7 +10,7 @@ import { uploadAttachment } from "@/lib/supabase/storage";
 
 type PersonRef = { id: string; name: string | null; email: string; avatarUrl: string | null };
 
-type Status = { id: string; name: string; color: string; order: number };
+type Status = { id: string; name: string; color: string; order: number; category?: string };
 type Transition = { id: string; fromStatusId: string; toStatusId: string; name: string };
 
 export type IssueDetailData = {
@@ -350,9 +350,34 @@ function SubtasksSection({
 
   if (issue.issueType.name === "Subtarea") return null;
 
+  const total = issue.children.length;
+  const done = issue.children.filter((c) => c.status.category === "DONE").length;
+  const isBigItem = issue.issueType.name === "Épica" || issue.issueType.name === "Historia";
+
   return (
     <section>
-      <h2 className="mb-2 text-sm font-semibold text-ink/70">Subtareas</h2>
+      <div className="mb-2 flex items-center gap-2">
+        <h2 className="text-sm font-semibold text-ink/70">Subtareas</h2>
+        {total > 0 && (
+          <span className="text-xs text-ink/50">
+            {done} de {total} completadas
+          </span>
+        )}
+      </div>
+      {total > 0 && (
+        <div className="mb-2 h-1.5 w-full overflow-hidden rounded-full bg-bg">
+          <div
+            className="h-full rounded-full bg-status-done transition-all"
+            style={{ width: `${total === 0 ? 0 : Math.round((done / total) * 100)}%` }}
+          />
+        </div>
+      )}
+      {total === 0 && isBigItem && (
+        <p className="mb-2 text-xs text-ink/50">
+          ¿Esta {issue.issueType.name.toLowerCase()} es grande? Divídela en pasos más chicos para
+          avanzar más fácil — añade la primera subtarea abajo.
+        </p>
+      )}
       {issue.children.length > 0 && (
         <ul className="mb-2 flex flex-col gap-1">
           {issue.children.map((child) => (

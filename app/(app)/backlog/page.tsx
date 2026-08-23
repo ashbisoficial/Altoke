@@ -42,7 +42,13 @@ export default async function BacklogPage({
 
       <BacklogBoard
         projectId={project.id}
-        sprints={project.sprints.map((s) => ({ id: s.id, name: s.name, status: s.status }))}
+        sprints={project.sprints.map((s) => ({
+          id: s.id,
+          name: s.name,
+          status: s.status,
+          startDate: s.startDate?.toISOString() ?? null,
+          endDate: s.endDate?.toISOString() ?? null,
+        }))}
         initialIssues={issues.map((issue) => ({
           id: issue.id,
           key: issue.key,

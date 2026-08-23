@@ -6,6 +6,7 @@ import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { useListSelection } from "@/lib/hooks/useListSelection";
+import { ISSUE_TYPE_HELP } from "@/lib/issue-type-help";
 
 export function CreateIssueForm({
   projectId,
@@ -18,6 +19,7 @@ export function CreateIssueForm({
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [issueTypeId, setIssueTypeId] = useListSelection(issueTypes);
+  const selectedType = issueTypes.find((t) => t.id === issueTypeId);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -87,6 +89,9 @@ export function CreateIssueForm({
       <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
         Cancelar
       </Button>
+      {selectedType && ISSUE_TYPE_HELP[selectedType.name] && (
+        <p className="w-full text-xs text-ink/50">{ISSUE_TYPE_HELP[selectedType.name]}</p>
+      )}
       {error && <p className="w-full text-sm text-red-600">{error}</p>}
     </form>
   );

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { ListChecks } from "lucide-react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
@@ -12,6 +13,7 @@ export type BoardIssue = {
   statusId: string;
   issueType: { name: string; color: string | null };
   assignee: { name: string | null; email: string; avatarUrl: string | null } | null;
+  subtaskCount?: number;
 };
 
 const PRIORITY_LABEL: Record<BoardIssue["priority"], string> = {
@@ -58,7 +60,15 @@ export function IssueCard({ issue }: { issue: BoardIssue }) {
         {issue.title}
       </Link>
       <div className="mt-2 flex min-w-0 items-center justify-between gap-1 text-xs text-ink/60">
-        <span className="truncate">{PRIORITY_LABEL[issue.priority]}</span>
+        <span className="flex items-center gap-2 truncate">
+          {PRIORITY_LABEL[issue.priority]}
+          {!!issue.subtaskCount && (
+            <span className="flex items-center gap-0.5 text-ink/50" title="Subtareas">
+              <ListChecks size={12} />
+              {issue.subtaskCount}
+            </span>
+          )}
+        </span>
         {issue.assignee && (
           <span
             className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent/10 text-[10px] font-medium text-accent"
