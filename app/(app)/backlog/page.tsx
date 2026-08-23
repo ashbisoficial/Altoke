@@ -27,7 +27,7 @@ export default async function BacklogPage({
     where: { projectId, parentId: null },
     include: {
       issueType: { select: { name: true, color: true } },
-      status: { select: { name: true, color: true } },
+      status: { select: { name: true, color: true, category: true } },
       assignee: { select: { name: true, email: true } },
     },
     orderBy: { number: "asc" },

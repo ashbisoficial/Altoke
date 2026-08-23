@@ -11,7 +11,7 @@ export type BacklogIssue = {
   sprintId: string | null;
   storyPoints: number | null;
   issueType: { name: string; color: string | null };
-  status: { name: string; color: string };
+  status: { name: string; color: string; category?: string };
   assignee: { name: string | null; email: string } | null;
 };
 

@@ -44,19 +44,33 @@ function Section({
   title,
   right,
   issues,
+  progress,
 }: {
   id: string;
   title: string;
   right?: React.ReactNode;
   issues: BacklogIssue[];
+  progress?: { done: number; total: number };
 }) {
   const { setNodeRef, isOver } = useDroppable({ id });
+  const progressPct = progress && progress.total > 0 ? Math.round((progress.done / progress.total) * 100) : 0;
 
   return (
     <section className="mb-4">
-      <div className="mb-2 flex items-center gap-2">
+      <div className="mb-2 flex flex-wrap items-center gap-2">
         <h2 className="font-heading text-sm font-semibold">{title}</h2>
         <span className="text-xs text-ink/50">{issues.length}</span>
+        {progress && progress.total > 0 && (
+          <span className="flex items-center gap-1.5 text-xs text-ink/50">
+            <span className="h-1.5 w-16 overflow-hidden rounded-full bg-bg">
+              <span
+                className="block h-full rounded-full bg-status-done transition-all"
+                style={{ width: `${progressPct}%` }}
+              />
+            </span>
+            {progress.done} de {progress.total} completadas
+          </span>
+        )}
         <div className="ml-auto">{right}</div>
       </div>
       <SortableContext items={issues.map((i) => i.id)} strategy={verticalListSortingStrategy}>
@@ -137,6 +151,22 @@ export function BacklogBoard({
     }
     return map;
   }, [visibleIssues, sprints]);
+
+  // El avance de cada sprint se calcula sobre todas sus incidencias, sin
+  // aplicar los filtros de arriba — es una métrica del sprint completo,
+  // no de lo que se está mirando en ese momento.
+  const sprintProgress = useMemo(() => {
+    const map = new Map<string, { done: number; total: number }>();
+    for (const sprint of sprints) map.set(sprint.id, { done: 0, total: 0 });
+    for (const issue of issues) {
+      if (!issue.sprintId) continue;
+      const entry = map.get(issue.sprintId);
+      if (!entry) continue;
+      entry.total += 1;
+      if (issue.status.category === "DONE") entry.done += 1;
+    }
+    return map;
+  }, [issues, sprints]);
 
   const activeIssue = activeId ? issues.find((i) => i.id === activeId) ?? null : null;
 
@@ -284,6 +314,7 @@ export function BacklogBoard({
             id={sprint.id}
             title={sprint.name}
             issues={groups.get(sprint.id) ?? []}
+            progress={sprintProgress.get(sprint.id)}
             right={
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-xs text-ink/50">{SPRINT_STATUS_LABEL[sprint.status]}</span>
