@@ -7,6 +7,7 @@ import { ArrowLeft, X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { uploadAttachment } from "@/lib/supabase/storage";
+import { PRIORITY_LABEL, type Priority } from "@/lib/priority";
 
 type PersonRef = { id: string; name: string | null; email: string; avatarUrl: string | null };
 
@@ -18,7 +19,7 @@ export type IssueDetailData = {
   key: string;
   title: string;
   description: string | null;
-  priority: "HIGHEST" | "HIGH" | "MEDIUM" | "LOW" | "LOWEST";
+  priority: Priority;
   statusId: string;
   status: Status;
   issueTypeId: string;
@@ -61,14 +62,6 @@ export type IssueDetailProject = {
   sprints: { id: string; name: string; status: string }[];
   members: { user: PersonRef }[];
   workflow: { statuses: Status[]; transitions: Transition[] };
-};
-
-const PRIORITY_LABEL: Record<IssueDetailData["priority"], string> = {
-  HIGHEST: "Urgente",
-  HIGH: "Alta",
-  MEDIUM: "Media",
-  LOW: "Baja",
-  LOWEST: "Muy baja",
 };
 
 const LINK_TYPE_LABEL: Record<string, string> = {

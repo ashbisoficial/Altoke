@@ -3,14 +3,7 @@ import { redirect } from "next/navigation";
 import { CalendarDays, ListTodo } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/auth";
-
-const PRIORITY_LABEL: Record<string, string> = {
-  HIGHEST: "Urgente",
-  HIGH: "Alta",
-  MEDIUM: "Media",
-  LOW: "Baja",
-  LOWEST: "Muy baja",
-};
+import { PRIORITY_LABEL } from "@/lib/priority";
 
 function formatDueDate(date: Date) {
   return date.toLocaleDateString("es", { day: "numeric", month: "short", timeZone: "UTC" });

@@ -4,24 +4,17 @@ import Link from "next/link";
 import { ListChecks } from "lucide-react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { PRIORITY_LABEL, type Priority } from "@/lib/priority";
 
 export type BoardIssue = {
   id: string;
   key: string;
   title: string;
-  priority: "HIGHEST" | "HIGH" | "MEDIUM" | "LOW" | "LOWEST";
+  priority: Priority;
   statusId: string;
   issueType: { name: string; color: string | null };
   assignee: { name: string | null; email: string; avatarUrl: string | null } | null;
   subtaskCount?: number;
-};
-
-const PRIORITY_LABEL: Record<BoardIssue["priority"], string> = {
-  HIGHEST: "Urgente",
-  HIGH: "Alta",
-  MEDIUM: "Media",
-  LOW: "Baja",
-  LOWEST: "Muy baja",
 };
 
 export function IssueCard({ issue }: { issue: BoardIssue }) {
