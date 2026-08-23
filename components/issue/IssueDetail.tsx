@@ -53,6 +53,14 @@ export type IssueDetailData = {
   linksFrom: { id: string; type: string; target: { id: string; key: string; title: string } }[];
   linksTo: { id: string; type: string; source: { id: string; key: string; title: string } }[];
   labels: { label: { id: string; name: string; color: string } }[];
+  activity: {
+    id: string;
+    field: string;
+    fromLabel: string | null;
+    toLabel: string | null;
+    createdAt: Date;
+    actor: PersonRef;
+  }[];
 };
 
 export type IssueDetailProject = {
@@ -193,6 +201,8 @@ export function IssueDetail({
           <AttachmentsSection issue={issue} currentUserId={currentUserId} onChanged={() => router.refresh()} />
 
           <CommentsSection issue={issue} onChanged={() => router.refresh()} />
+
+          <ActivitySection issue={issue} />
         </div>
 
         <aside className="flex flex-col gap-4 rounded-lg border border-border bg-surface p-4 text-sm">
@@ -752,6 +762,44 @@ function AttachmentsSection({
         <input type="file" className="hidden" onChange={handleUpload} disabled={uploading} />
       </label>
       {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
+    </section>
+  );
+}
+
+const ACTIVITY_FIELD_LABEL: Record<string, string> = {
+  status: "el estado",
+  assignee: "quién está asignado",
+  priority: "la prioridad",
+  sprint: "el sprint",
+};
+
+function ActivitySection({ issue }: { issue: IssueDetailData }) {
+  if (issue.activity.length === 0) return null;
+
+  return (
+    <section>
+      <h2 className="mb-2 text-sm font-semibold text-ink/70">Historial</h2>
+      <ul className="flex flex-col gap-1.5">
+        {issue.activity.map((a) => (
+          <li key={a.id} className="text-xs text-ink/60">
+            <span className="font-medium text-ink/80">{a.actor.name ?? a.actor.email}</span> cambió{" "}
+            {ACTIVITY_FIELD_LABEL[a.field] ?? a.field}
+            {a.fromLabel && (
+              <>
+                {" "}
+                de <span className="font-medium">{a.fromLabel}</span>
+              </>
+            )}
+            {a.toLabel && (
+              <>
+                {" "}
+                a <span className="font-medium">{a.toLabel}</span>
+              </>
+            )}
+            <span className="text-ink/40"> · {new Date(a.createdAt).toLocaleString("es")}</span>
+          </li>
+        ))}
+      </ul>
     </section>
   );
 }

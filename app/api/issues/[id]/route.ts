@@ -5,6 +5,7 @@ import { getSessionUser } from "@/lib/auth";
 import { forbidden, notFound, unauthorized, zodErrorResponse } from "@/lib/http";
 import { hasProjectPermission, isProjectMember } from "@/lib/permissions";
 import { notify } from "@/lib/notifications";
+import { PRIORITY_LABEL } from "@/lib/priority";
 
 const updateIssueSchema = z.object({
   title: z.string().trim().min(1).max(255).optional(),
@@ -52,7 +53,13 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   if (!user) return unauthorized();
   const { id } = await params;
 
-  const existing = await prisma.issue.findUnique({ where: { id } });
+  const existing = await prisma.issue.findUnique({
+    where: { id },
+    include: {
+      assignee: { select: { name: true, email: true } },
+      sprint: { select: { name: true } },
+    },
+  });
   if (!existing) return notFound("Incidencia");
   if (!(await hasProjectPermission(user.id, existing.projectId, "issue.edit"))) return forbidden();
 
@@ -66,7 +73,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       ...rest,
       ...(dueDate !== undefined ? { dueDate: dueDate ? new Date(dueDate) : null } : {}),
     },
-    include: { issueType: true, status: true, assignee: true, reporter: true },
+    include: { issueType: true, status: true, assignee: true, reporter: true, sprint: true },
   });
 
   if (rest.assigneeId && rest.assigneeId !== existing.assigneeId) {
@@ -77,6 +84,34 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       title: `Te asignaron ${issue.key}`,
       body: issue.title,
       link: `/issues/${issue.id}`,
+    });
+  }
+
+  const activities: { field: string; fromLabel: string | null; toLabel: string | null }[] = [];
+  if (rest.priority && rest.priority !== existing.priority) {
+    activities.push({
+      field: "priority",
+      fromLabel: PRIORITY_LABEL[existing.priority],
+      toLabel: PRIORITY_LABEL[rest.priority],
+    });
+  }
+  if (rest.assigneeId !== undefined && rest.assigneeId !== existing.assigneeId) {
+    activities.push({
+      field: "assignee",
+      fromLabel: existing.assignee ? existing.assignee.name ?? existing.assignee.email : "Sin asignar",
+      toLabel: issue.assignee ? issue.assignee.name ?? issue.assignee.email : "Sin asignar",
+    });
+  }
+  if (rest.sprintId !== undefined && rest.sprintId !== existing.sprintId) {
+    activities.push({
+      field: "sprint",
+      fromLabel: existing.sprint?.name ?? "Backlog",
+      toLabel: issue.sprint?.name ?? "Backlog",
+    });
+  }
+  if (activities.length > 0) {
+    await prisma.issueActivity.createMany({
+      data: activities.map((a) => ({ issueId: id, actorId: user.id, ...a })),
     });
   }
 

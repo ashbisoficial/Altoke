@@ -37,6 +37,11 @@ export default async function IssueDetailPage({
         include: { source: { select: { id: true, key: true, title: true } } },
         orderBy: { createdAt: "asc" },
       },
+      activity: {
+        include: { actor: { select: { id: true, name: true, email: true, avatarUrl: true } } },
+        orderBy: { createdAt: "desc" },
+        take: 30,
+      },
     },
   });
   if (!issue) notFound();

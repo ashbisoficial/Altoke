@@ -39,6 +39,7 @@ model User {
   projectMembers  ProjectMember[]
   reportedIssues  Issue[]         @relation("IssueReporter")
   assignedIssues  Issue[]         @relation("IssueAssignee")
+  issueActivity   IssueActivity[] @relation("IssueActivityActor")
   comments        Comment[]
   attachments     Attachment[]
   testRunsRun     TestRun[]       @relation("TestRunExecutedBy")
@@ -256,9 +257,28 @@ model Issue {
   linksTo             IssueLink[]           @relation("LinkTarget")
   testCase            TestCase?
   requirementCoverage TestCaseRequirement[] @relation("RequirementIssue")
+  activity            IssueActivity[]
 
   @@unique([projectId, number])
   @@index([projectId, statusId])
+}
+
+/// Un cambio de campo relevante (estado, asignado, prioridad, sprint),
+/// guardado con las etiquetas ya resueltas a texto — así el historial no se
+/// rompe si más tarde se renombra o borra el estado/persona/sprint referido.
+model IssueActivity {
+  id        String   @id @default(cuid())
+  issueId   String
+  actorId   String
+  field     String
+  fromLabel String?
+  toLabel   String?
+  createdAt DateTime @default(now())
+
+  issue Issue @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  actor User  @relation("IssueActivityActor", fields: [actorId], references: [id])
+
+  @@index([issueId, createdAt])
 }
 
 enum IssueLinkType {

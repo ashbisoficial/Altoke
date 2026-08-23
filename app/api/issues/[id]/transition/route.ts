@@ -16,7 +16,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
   const issue = await prisma.issue.findUnique({
     where: { id },
-    include: { project: { select: { workflowId: true } } },
+    include: { project: { select: { workflowId: true } }, status: { select: { name: true } } },
   });
   if (!issue) return notFound("Incidencia");
   if (!(await hasProjectPermission(user.id, issue.projectId, "issue.transition"))) {
@@ -51,6 +51,16 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     where: { id },
     data: { statusId: toStatusId },
     include: { issueType: true, status: true, assignee: true, reporter: true },
+  });
+
+  await prisma.issueActivity.create({
+    data: {
+      issueId: id,
+      actorId: user.id,
+      field: "status",
+      fromLabel: issue.status.name,
+      toLabel: updated.status.name,
+    },
   });
 
   return NextResponse.json({ issue: updated });
