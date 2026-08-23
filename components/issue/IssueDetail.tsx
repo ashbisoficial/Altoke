@@ -52,6 +52,7 @@ export type IssueDetailData = {
   }[];
   linksFrom: { id: string; type: string; target: { id: string; key: string; title: string } }[];
   linksTo: { id: string; type: string; source: { id: string; key: string; title: string } }[];
+  labels: { label: { id: string; name: string; color: string } }[];
 };
 
 export type IssueDetailProject = {
@@ -62,6 +63,7 @@ export type IssueDetailProject = {
   sprints: { id: string; name: string; status: string }[];
   members: { user: PersonRef }[];
   workflow: { statuses: Status[]; transitions: Transition[] };
+  labels: { id: string; name: string; color: string }[];
 };
 
 const LINK_TYPE_LABEL: Record<string, string> = {
@@ -288,6 +290,13 @@ export function IssueDetail({
             />
           </div>
 
+          <LabelsSection
+            issue={issue}
+            projectId={project.id}
+            projectLabels={project.labels}
+            onChanged={() => router.refresh()}
+          />
+
           <div className="border-t border-border pt-3 text-xs text-ink/60">
             Reportado por {issue.reporter.name ?? issue.reporter.email}
           </div>
@@ -303,6 +312,155 @@ export function IssueDetail({
         </aside>
       </div>
     </main>
+  );
+}
+
+const LABEL_COLORS = ["#2952CC", "#16A34A", "#D97706", "#DC2626", "#7C3AED", "#0EA5E9", "#DB2777", "#64748B"];
+
+function LabelsSection({
+  issue,
+  projectId,
+  projectLabels,
+  onChanged,
+}: {
+  issue: IssueDetailData;
+  projectId: string;
+  projectLabels: { id: string; name: string; color: string }[];
+  onChanged: () => void;
+}) {
+  const [adding, setAdding] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [newColor, setNewColor] = useState(LABEL_COLORS[0]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const currentLabelIds = new Set(issue.labels.map((l) => l.label.id));
+  const availableToAdd = projectLabels.filter((l) => !currentLabelIds.has(l.id));
+
+  async function attachExisting(labelId: string) {
+    if (!labelId) return;
+    setError(null);
+    const res = await fetch(`/api/issues/${issue.id}/labels`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ labelId }),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setError(data.error ?? "No se pudo agregar la etiqueta");
+      return;
+    }
+    onChanged();
+  }
+
+  async function removeLabel(labelId: string) {
+    await fetch(`/api/issues/${issue.id}/labels/${labelId}`, { method: "DELETE" });
+    onChanged();
+  }
+
+  async function createAndAttach(e: React.FormEvent) {
+    e.preventDefault();
+    if (!newName.trim()) return;
+    setLoading(true);
+    setError(null);
+    const res = await fetch(`/api/projects/${projectId}/labels`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: newName.trim(), color: newColor }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      setLoading(false);
+      setError(data.error ?? "No se pudo crear la etiqueta");
+      return;
+    }
+    await attachExisting(data.label.id);
+    setLoading(false);
+    setNewName("");
+    setAdding(false);
+  }
+
+  return (
+    <div>
+      <label className="text-xs font-medium text-ink/60">Etiquetas</label>
+      <div className="mt-1 flex flex-wrap gap-1.5">
+        {issue.labels.map(({ label }) => (
+          <span
+            key={label.id}
+            className="flex items-center gap-1 rounded-full px-2 py-0.5 text-xs text-white"
+            style={{ backgroundColor: label.color }}
+          >
+            {label.name}
+            <button
+              type="button"
+              onClick={() => removeLabel(label.id)}
+              aria-label={`Quitar etiqueta ${label.name}`}
+              className="opacity-80 hover:opacity-100"
+            >
+              <X size={11} />
+            </button>
+          </span>
+        ))}
+        {issue.labels.length === 0 && <span className="text-xs text-ink/40">Sin etiquetas todavía.</span>}
+      </div>
+
+      {availableToAdd.length > 0 && (
+        <select
+          className="mt-2 w-full rounded-md border border-border bg-surface px-2 py-1.5 text-sm"
+          value=""
+          onChange={(e) => attachExisting(e.target.value)}
+        >
+          <option value="">Añadir etiqueta existente…</option>
+          {availableToAdd.map((l) => (
+            <option key={l.id} value={l.id}>
+              {l.name}
+            </option>
+          ))}
+        </select>
+      )}
+
+      {adding ? (
+        <form onSubmit={createAndAttach} className="mt-2 flex flex-col gap-2">
+          <Input
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            placeholder="Nombre de la etiqueta"
+            autoFocus
+          />
+          <div className="flex flex-wrap gap-1.5">
+            {LABEL_COLORS.map((color) => (
+              <button
+                key={color}
+                type="button"
+                onClick={() => setNewColor(color)}
+                aria-label={`Color ${color}`}
+                className={`h-6 w-6 rounded-full ${
+                  newColor === color ? "ring-2 ring-offset-2 ring-accent" : ""
+                }`}
+                style={{ backgroundColor: color }}
+              />
+            ))}
+          </div>
+          <div className="flex gap-2">
+            <Button type="submit" variant="secondary" disabled={loading || !newName.trim()}>
+              Crear
+            </Button>
+            <Button type="button" variant="ghost" onClick={() => setAdding(false)}>
+              Cancelar
+            </Button>
+          </div>
+        </form>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setAdding(true)}
+          className="mt-2 text-xs text-accent hover:underline underline-offset-4"
+        >
+          + Nueva etiqueta
+        </button>
+      )}
+      {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
+    </div>
   );
 }
 
