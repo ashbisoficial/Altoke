@@ -42,9 +42,24 @@ function sameDay(a: Date, b: Date) {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 }
 
+// Fechas de solo-día (dueDate, sprints) se guardan como medianoche UTC (ver
+// updateSprintDate en BacklogBoard). Tomamos el prefijo "YYYY-MM-DD" tal
+// cual en vez de usar getters locales, para no desplazar el día según la
+// zona horaria de quien mira el calendario.
+function dateKeyFromISO(iso: string) {
+  return iso.slice(0, 10);
+}
+
+function dateKey(d: Date) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
 function formatDateShort(iso: string) {
   const d = new Date(iso);
-  return d.toLocaleDateString("es", { day: "numeric", month: "short" });
+  return d.toLocaleDateString("es", { day: "numeric", month: "short", timeZone: "UTC" });
 }
 
 export function ProjectCalendar({
@@ -79,8 +94,7 @@ export function ProjectCalendar({
   const issuesByDay = useMemo(() => {
     const map = new Map<string, CalendarIssue[]>();
     for (const issue of issues) {
-      const d = new Date(issue.dueDate);
-      const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+      const key = dateKeyFromISO(issue.dueDate);
       if (!map.has(key)) map.set(key, []);
       map.get(key)!.push(issue);
     }
@@ -88,7 +102,7 @@ export function ProjectCalendar({
   }, [issues]);
 
   function issuesFor(day: Date) {
-    return issuesByDay.get(`${day.getFullYear()}-${day.getMonth()}-${day.getDate()}`) ?? [];
+    return issuesByDay.get(dateKey(day)) ?? [];
   }
 
   const selectedIssues = selectedDay ? issuesFor(selectedDay) : [];
