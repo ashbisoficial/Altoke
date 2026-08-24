@@ -40,7 +40,7 @@ export default async function ProjectMuralsPage({ params }: { params: Promise<{ 
             <li key={mural.id}>
               <Link
                 href={`/mural/${mural.id}`}
-                className="block rounded-lg border border-border bg-surface p-4 hover:border-accent"
+                className="shadow-soft-hover block rounded-xl border border-border bg-surface p-4 hover:border-accent"
               >
                 <p className="font-heading text-base font-medium">{mural.name}</p>
                 <p className="mt-1 text-xs text-ink/50">{mural._count.muralElements} elementos</p>

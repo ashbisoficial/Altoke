@@ -55,8 +55,8 @@ function ToolButton({
       onClick={onClick}
       title={label}
       aria-label={label}
-      className={`flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium transition-colors ${
-        active ? "bg-accent text-white shadow-sm" : "text-ink/70 hover:bg-bg hover:text-ink"
+      className={`flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium transition-colors ${
+        active ? "bg-accent text-white shadow-soft" : "text-ink/70 hover:bg-bg hover:text-ink"
       }`}
     >
       {icon}
@@ -371,7 +371,7 @@ export function MuralCanvas({
 
   return (
     <div className="flex h-[calc(100vh-3.5rem)] flex-col">
-      <header className="flex flex-wrap items-center gap-1 border-b border-border bg-surface px-3 py-2 shadow-sm">
+      <header className="shadow-soft flex flex-wrap items-center gap-1 border-b border-border bg-surface px-3 py-2">
         <div className="flex items-center gap-3 pr-1">
           <Link
             href={`/projects/${projectId}/murals`}
@@ -435,7 +435,7 @@ export function MuralCanvas({
             type="button"
             onClick={() => zoomBy(1 / 1.2)}
             aria-label="Alejar"
-            className="flex h-7 w-7 items-center justify-center rounded-md text-ink/70 hover:bg-surface hover:text-ink"
+            className="flex h-7 w-7 items-center justify-center rounded-lg text-ink/70 hover:bg-surface hover:text-ink"
           >
             <Minus size={14} />
           </button>
@@ -446,7 +446,7 @@ export function MuralCanvas({
             type="button"
             onClick={() => zoomBy(1.2)}
             aria-label="Acercar"
-            className="flex h-7 w-7 items-center justify-center rounded-md text-ink/70 hover:bg-surface hover:text-ink"
+            className="flex h-7 w-7 items-center justify-center rounded-lg text-ink/70 hover:bg-surface hover:text-ink"
           >
             <Plus size={14} />
           </button>
@@ -455,7 +455,7 @@ export function MuralCanvas({
             type="button"
             onClick={() => setView({ scale: 1, x: 0, y: 0 })}
             aria-label="Restablecer vista"
-            className="flex h-7 w-7 items-center justify-center rounded-md text-ink/70 hover:bg-surface hover:text-ink"
+            className="flex h-7 w-7 items-center justify-center rounded-lg text-ink/70 hover:bg-surface hover:text-ink"
           >
             <RotateCcw size={13} />
           </button>
@@ -469,7 +469,7 @@ export function MuralCanvas({
       )}
 
       {selected && canEdit && (
-        <div className="flex flex-wrap items-center gap-1 border-b border-border bg-surface px-3 py-2 shadow-sm">
+        <div className="shadow-soft flex flex-wrap items-center gap-1 border-b border-border bg-surface px-3 py-2">
           <span className="mr-1 shrink-0 text-xs font-medium text-ink/50">
             {ELEMENT_TYPE_LABEL[selected.type]}
           </span>
@@ -518,7 +518,7 @@ export function MuralCanvas({
           <button
             type="button"
             onClick={deleteSelected}
-            className="ml-auto flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50"
+            className="ml-auto flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50"
           >
             <Trash2 size={14} />
             Eliminar
