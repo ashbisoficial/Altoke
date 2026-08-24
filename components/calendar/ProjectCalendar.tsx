@@ -116,7 +116,7 @@ export function ProjectCalendar({
             {sprints.map((sprint) => (
               <li
                 key={sprint.id}
-                className="flex flex-wrap items-center gap-2 rounded-md border border-border bg-surface px-3 py-2 text-sm"
+                className="shadow-soft-hover flex flex-wrap items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-sm"
               >
                 <span
                   className="h-2.5 w-2.5 shrink-0 rounded-full"
@@ -145,14 +145,14 @@ export function ProjectCalendar({
               type="button"
               onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))}
               aria-label="Mes anterior"
-              className="flex h-8 w-8 items-center justify-center rounded-md text-ink/70 hover:bg-bg"
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-ink/70 hover:bg-bg"
             >
               <ChevronLeft size={16} />
             </button>
             <button
               type="button"
               onClick={() => setCursor(new Date(today.getFullYear(), today.getMonth(), 1))}
-              className="rounded-md px-2 py-1 text-xs font-medium text-ink/70 hover:bg-bg"
+              className="rounded-lg px-2 py-1 text-xs font-medium text-ink/70 hover:bg-bg"
             >
               Hoy
             </button>
@@ -160,14 +160,14 @@ export function ProjectCalendar({
               type="button"
               onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1))}
               aria-label="Mes siguiente"
-              className="flex h-8 w-8 items-center justify-center rounded-md text-ink/70 hover:bg-bg"
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-ink/70 hover:bg-bg"
             >
               <ChevronRight size={16} />
             </button>
           </div>
         </div>
 
-        <div className="grid grid-cols-7 gap-px overflow-hidden rounded-lg border border-border bg-border text-xs">
+        <div className="shadow-soft grid grid-cols-7 gap-px overflow-hidden rounded-xl border border-border bg-border text-xs">
           {WEEKDAY_LABELS.map((label) => (
             <div key={label} className="bg-bg px-2 py-1.5 text-center font-medium text-ink/60">
               {label}
@@ -198,7 +198,7 @@ export function ProjectCalendar({
                     {dayIssues.slice(0, 2).map((issue) => (
                       <span
                         key={issue.id}
-                        className="flex items-center gap-1 truncate rounded px-1 py-0.5 text-[10px]"
+                        className="flex items-center gap-1 truncate rounded-full px-1.5 py-0.5 text-[10px]"
                         style={{ backgroundColor: `${issue.issueType.color ?? "#94A3B8"}20` }}
                       >
                         <span
@@ -220,7 +220,7 @@ export function ProjectCalendar({
       </section>
 
       {selectedDay && (
-        <section className="rounded-lg border border-border bg-surface p-4">
+        <section className="shadow-soft rounded-xl border border-border bg-surface p-4">
           <div className="mb-2 flex items-center justify-between">
             <h3 className="flex items-center gap-1.5 text-sm font-semibold">
               <Flag size={14} className="text-accent" />
@@ -242,7 +242,7 @@ export function ProjectCalendar({
                 <li key={issue.id}>
                   <Link
                     href={`/issues/${issue.id}`}
-                    className="flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm hover:border-accent"
+                    className="shadow-soft-hover flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-sm hover:border-accent"
                   >
                     <span
                       className="h-2 w-2 shrink-0 rounded-full"

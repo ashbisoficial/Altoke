@@ -190,7 +190,7 @@ export function IssueDetail({
               }
               rows={6}
               placeholder="Añade una descripción…"
-              className="w-full rounded-md border border-border bg-surface p-3 text-sm focus-visible:border-accent"
+              className="w-full rounded-lg border border-border bg-surface p-3 text-sm focus-visible:border-accent"
             />
           </section>
 
@@ -205,12 +205,12 @@ export function IssueDetail({
           <ActivitySection issue={issue} />
         </div>
 
-        <aside className="flex flex-col gap-4 rounded-lg border border-border bg-surface p-4 text-sm">
+        <aside className="shadow-soft flex flex-col gap-4 rounded-xl border border-border bg-surface p-4 text-sm">
           <div>
             <label className="text-xs font-medium text-ink/60">Estado</label>
             <div className="mt-1 flex flex-wrap gap-1">
               <span
-                className="rounded px-2 py-1 text-xs font-medium text-white"
+                className="rounded-full px-2 py-1 text-xs font-medium text-white"
                 style={{ backgroundColor: issue.status.color }}
               >
                 {issue.status.name}
@@ -218,7 +218,7 @@ export function IssueDetail({
             </div>
             {availableTransitions.length > 0 && (
               <select
-                className="mt-2 w-full rounded-md border border-border bg-surface px-2 py-1.5 text-sm"
+                className="mt-2 w-full rounded-lg border border-border bg-surface px-2 py-1.5 text-sm"
                 value=""
                 onChange={(e) => e.target.value && moveToStatus(e.target.value)}
               >
@@ -238,7 +238,7 @@ export function IssueDetail({
           <div>
             <label className="text-xs font-medium text-ink/60">Prioridad</label>
             <select
-              className="mt-1 w-full rounded-md border border-border bg-surface px-2 py-1.5 text-sm"
+              className="mt-1 w-full rounded-lg border border-border bg-surface px-2 py-1.5 text-sm"
               value={issue.priority}
               disabled={savingField === "priority"}
               onChange={(e) => save("priority", { priority: e.target.value })}
@@ -254,7 +254,7 @@ export function IssueDetail({
           <div>
             <label className="text-xs font-medium text-ink/60">Asignado</label>
             <select
-              className="mt-1 w-full rounded-md border border-border bg-surface px-2 py-1.5 text-sm"
+              className="mt-1 w-full rounded-lg border border-border bg-surface px-2 py-1.5 text-sm"
               value={issue.assignee?.id ?? ""}
               disabled={savingField === "assignee"}
               onChange={(e) => save("assignee", { assigneeId: e.target.value || null })}
@@ -271,7 +271,7 @@ export function IssueDetail({
           <div>
             <label className="text-xs font-medium text-ink/60">Sprint</label>
             <select
-              className="mt-1 w-full rounded-md border border-border bg-surface px-2 py-1.5 text-sm"
+              className="mt-1 w-full rounded-lg border border-border bg-surface px-2 py-1.5 text-sm"
               value={issue.sprintId ?? ""}
               disabled={savingField === "sprint"}
               onChange={(e) => save("sprint", { sprintId: e.target.value || null })}
@@ -416,7 +416,7 @@ function LabelsSection({
 
       {availableToAdd.length > 0 && (
         <select
-          className="mt-2 w-full rounded-md border border-border bg-surface px-2 py-1.5 text-sm"
+          className="mt-2 w-full rounded-lg border border-border bg-surface px-2 py-1.5 text-sm"
           value=""
           onChange={(e) => attachExisting(e.target.value)}
         >
@@ -545,12 +545,12 @@ function SubtasksSection({
             <li key={child.id}>
               <Link
                 href={`/issues/${child.id}`}
-                className="flex items-center gap-2 rounded-md border border-border bg-surface px-3 py-2 text-sm hover:border-accent"
+                className="flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-sm hover:border-accent"
               >
                 <span className="font-mono text-xs text-accent">{child.key}</span>
                 <span className="flex-1">{child.title}</span>
                 <span
-                  className="rounded px-2 py-0.5 text-xs text-white"
+                  className="rounded-full px-2 py-0.5 text-xs text-white"
                   style={{ backgroundColor: child.status.color }}
                 >
                   {child.status.name}
@@ -628,7 +628,7 @@ function LinksSection({
           {allLinks.map((l) => (
             <li
               key={l.id}
-              className="flex items-center gap-2 rounded-md border border-border bg-surface px-3 py-2 text-sm"
+              className="flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-sm"
             >
               <span className="text-ink/60">{l.label}</span>
               <Link href={`/issues/${l.issue.id}`} className="font-mono text-xs text-accent">
@@ -649,7 +649,7 @@ function LinksSection({
       )}
       <form onSubmit={addLink} className="flex flex-wrap gap-2">
         <select
-          className="rounded-md border border-border bg-surface px-2 py-1.5 text-sm"
+          className="rounded-lg border border-border bg-surface px-2 py-1.5 text-sm"
           value={type}
           onChange={(e) => setType(e.target.value)}
         >
@@ -660,7 +660,7 @@ function LinksSection({
           ))}
         </select>
         <select
-          className="min-w-40 flex-1 rounded-md border border-border bg-surface px-2 py-1.5 text-sm"
+          className="min-w-40 flex-1 rounded-lg border border-border bg-surface px-2 py-1.5 text-sm"
           value={targetId}
           onChange={(e) => setTargetId(e.target.value)}
         >
@@ -735,7 +735,7 @@ function AttachmentsSection({
           {issue.attachments.map((a) => (
             <li
               key={a.id}
-              className="flex items-center gap-2 rounded-md border border-border bg-surface px-3 py-2 text-sm"
+              className="flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-sm"
             >
               <a href={a.fileUrl} target="_blank" rel="noopener noreferrer" className="flex-1 truncate text-accent">
                 {a.fileName}
@@ -756,7 +756,7 @@ function AttachmentsSection({
         </ul>
       )}
       <label className="inline-block">
-        <span className="cursor-pointer rounded-md border border-border bg-surface px-3 py-1.5 text-sm hover:bg-bg">
+        <span className="cursor-pointer rounded-lg border border-border bg-surface px-3 py-1.5 text-sm hover:bg-bg">
           {uploading ? "Subiendo…" : "Subir archivo"}
         </span>
         <input type="file" className="hidden" onChange={handleUpload} disabled={uploading} />
@@ -829,7 +829,7 @@ function CommentsSection({ issue, onChanged }: { issue: IssueDetailData; onChang
       <h2 className="mb-2 text-sm font-semibold text-ink/70">Comentarios</h2>
       <ul className="mb-3 flex flex-col gap-2">
         {issue.comments.map((c) => (
-          <li key={c.id} className="rounded-md border border-border bg-surface p-3 text-sm">
+          <li key={c.id} className="rounded-lg border border-border bg-surface p-3 text-sm">
             <div className="mb-1 flex items-center justify-between text-xs text-ink/50">
               <span className="font-medium text-ink/80">{c.author.name ?? c.author.email}</span>
               <span>{new Date(c.createdAt).toLocaleString("es")}</span>
@@ -844,7 +844,7 @@ function CommentsSection({ issue, onChanged }: { issue: IssueDetailData; onChang
           onChange={(e) => setBody(e.target.value)}
           rows={3}
           placeholder="Escribe un comentario…"
-          className="w-full rounded-md border border-border bg-surface p-3 text-sm focus-visible:border-accent"
+          className="w-full rounded-lg border border-border bg-surface p-3 text-sm focus-visible:border-accent"
         />
         <Button type="submit" disabled={loading || !body.trim()} className="self-start">
           Comentar
