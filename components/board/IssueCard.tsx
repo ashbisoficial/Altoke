@@ -35,12 +35,12 @@ export function IssueCard({ issue }: { issue: BoardIssue }) {
       {...attributes}
       {...listeners}
       tabIndex={0}
-      className="ticket-stub cursor-grab touch-none rounded-lg border border-border bg-surface p-3 pt-2 shadow-sm active:cursor-grabbing"
+      className="ticket-stub shadow-soft-hover cursor-grab touch-none rounded-xl border border-border bg-surface p-3 pt-2 active:cursor-grabbing"
     >
       <div className="flex items-center justify-between pb-2">
         <span className="font-mono text-xs font-medium text-accent">{issue.key}</span>
         <span
-          className="h-2 w-2 rounded-full"
+          className="h-2.5 w-2.5 rounded-full"
           style={{ backgroundColor: issue.issueType.color ?? "#94A3B8" }}
           title={issue.issueType.name}
         />
@@ -64,7 +64,7 @@ export function IssueCard({ issue }: { issue: BoardIssue }) {
         </span>
         {issue.assignee && (
           <span
-            className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent/10 text-[10px] font-medium text-accent"
+            className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent3/10 text-[10px] font-medium text-accent3"
             title={issue.assignee.name ?? issue.assignee.email}
           >
             {(issue.assignee.name ?? issue.assignee.email).slice(0, 2).toUpperCase()}

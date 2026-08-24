@@ -33,10 +33,10 @@ export function BacklogRow({ issue }: { issue: BacklogIssue }) {
       {...attributes}
       {...listeners}
       tabIndex={0}
-      className="flex cursor-grab touch-none items-center gap-3 rounded-md border border-border bg-surface px-3 py-2 text-sm active:cursor-grabbing"
+      className="shadow-soft-hover flex cursor-grab touch-none items-center gap-3 rounded-lg border border-border bg-surface px-3 py-2 text-sm active:cursor-grabbing"
     >
       <span
-        className="h-2 w-2 shrink-0 rounded-full"
+        className="h-2.5 w-2.5 shrink-0 rounded-full"
         style={{ backgroundColor: issue.issueType.color ?? "#94A3B8" }}
         title={issue.issueType.name}
       />
@@ -54,14 +54,14 @@ export function BacklogRow({ issue }: { issue: BacklogIssue }) {
         </span>
       )}
       <span
-        className="shrink-0 rounded px-2 py-0.5 text-xs text-white"
+        className="shrink-0 rounded-full px-2 py-0.5 text-xs text-white"
         style={{ backgroundColor: issue.status.color }}
       >
         {issue.status.name}
       </span>
       {issue.assignee && (
         <span
-          className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent/10 text-[10px] font-medium text-accent"
+          className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent3/10 text-[10px] font-medium text-accent3"
           title={issue.assignee.name ?? issue.assignee.email}
         >
           {(issue.assignee.name ?? issue.assignee.email).slice(0, 2).toUpperCase()}

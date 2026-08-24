@@ -35,6 +35,12 @@ const SPRINT_STATUS_LABEL: Record<BacklogSprint["status"], string> = {
   COMPLETED: "Completado",
 };
 
+const SPRINT_STATUS_COLOR: Record<BacklogSprint["status"], string> = {
+  PLANNED: "#7C3AED",
+  ACTIVE: "#2952CC",
+  COMPLETED: "#16A34A",
+};
+
 function toDateInputValue(iso: string | null) {
   return iso ? iso.slice(0, 10) : "";
 }
@@ -45,49 +51,54 @@ function Section({
   right,
   issues,
   progress,
+  accentColor = "#94A3B8",
 }: {
   id: string;
   title: string;
   right?: React.ReactNode;
   issues: BacklogIssue[];
   progress?: { done: number; total: number };
+  accentColor?: string;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id });
   const progressPct = progress && progress.total > 0 ? Math.round((progress.done / progress.total) * 100) : 0;
 
   return (
-    <section className="mb-4">
-      <div className="mb-2 flex flex-wrap items-center gap-2">
-        <h2 className="font-heading text-sm font-semibold">{title}</h2>
-        <span className="text-xs text-ink/50">{issues.length}</span>
-        {progress && progress.total > 0 && (
-          <span className="flex items-center gap-1.5 text-xs text-ink/50">
-            <span className="h-1.5 w-16 overflow-hidden rounded-full bg-bg">
-              <span
-                className="block h-full rounded-full bg-status-done transition-all"
-                style={{ width: `${progressPct}%` }}
-              />
+    <section className="shadow-soft-hover mb-4 overflow-hidden rounded-xl border border-border bg-surface">
+      <div className="h-1.5" style={{ backgroundColor: accentColor }} />
+      <div className="p-3">
+        <div className="mb-2 flex flex-wrap items-center gap-2">
+          <h2 className="font-heading text-sm font-semibold">{title}</h2>
+          <span className="text-xs text-ink/50">{issues.length}</span>
+          {progress && progress.total > 0 && (
+            <span className="flex items-center gap-1.5 text-xs text-ink/50">
+              <span className="h-1.5 w-16 overflow-hidden rounded-full bg-bg">
+                <span
+                  className="block h-full rounded-full bg-status-done transition-all"
+                  style={{ width: `${progressPct}%` }}
+                />
+              </span>
+              {progress.done} de {progress.total} completadas
             </span>
-            {progress.done} de {progress.total} completadas
-          </span>
-        )}
-        <div className="ml-auto">{right}</div>
-      </div>
-      <SortableContext items={issues.map((i) => i.id)} strategy={verticalListSortingStrategy}>
-        <div
-          ref={setNodeRef}
-          className={`flex min-h-14 flex-col gap-1.5 rounded-lg border-2 border-dashed p-2 transition-colors ${
-            isOver ? "border-accent bg-accent/5" : "border-transparent"
-          }`}
-        >
-          {issues.length === 0 && (
-            <p className="px-1 py-2 text-xs text-ink/40">Suelta incidencias aquí.</p>
           )}
-          {issues.map((issue) => (
-            <BacklogRow key={issue.id} issue={issue} />
-          ))}
+          <div className="ml-auto">{right}</div>
         </div>
-      </SortableContext>
+        <SortableContext items={issues.map((i) => i.id)} strategy={verticalListSortingStrategy}>
+          <div
+            ref={setNodeRef}
+            className={`flex min-h-14 flex-col gap-1.5 rounded-lg border-2 border-dashed p-2 transition-colors ${
+              isOver ? "border-accent bg-accent/5" : "border-transparent"
+            }`}
+          >
+            {issues.length === 0 && (
+              <p className="px-1 py-2 text-xs text-ink/40">Suelta incidencias aquí.</p>
+            )}
+            {issues.map((issue) => (
+              <BacklogRow key={issue.id} issue={issue} />
+            ))}
+          </div>
+        </SortableContext>
+      </div>
     </section>
   );
 }
@@ -247,7 +258,7 @@ export function BacklogBoard({
           value={newSprintName}
           onChange={(e) => setNewSprintName(e.target.value)}
           placeholder="Nombre del nuevo sprint"
-          className="w-64 rounded-md border border-border bg-surface px-3 py-1.5 text-sm"
+          className="w-64 rounded-lg border border-border bg-surface px-3 py-1.5 text-sm"
         />
         <Button type="submit" variant="secondary" disabled={creatingSprint}>
           <Plus size={14} />
@@ -260,7 +271,7 @@ export function BacklogBoard({
         <select
           value={assigneeFilter}
           onChange={(e) => setAssigneeFilter(e.target.value)}
-          className="rounded-md border border-border bg-surface px-2 py-1.5 text-xs"
+          className="rounded-lg border border-border bg-surface px-2 py-1.5 text-xs"
         >
           <option value="all">Todas las personas</option>
           <option value={UNASSIGNED}>Sin asignar</option>
@@ -273,7 +284,7 @@ export function BacklogBoard({
         <select
           value={typeFilter}
           onChange={(e) => setTypeFilter(e.target.value)}
-          className="rounded-md border border-border bg-surface px-2 py-1.5 text-xs"
+          className="rounded-lg border border-border bg-surface px-2 py-1.5 text-xs"
         >
           <option value="all">Todos los tipos</option>
           {typeOptions.map((name) => (
@@ -297,7 +308,7 @@ export function BacklogBoard({
       </div>
 
       {error && (
-        <p role="alert" className="mb-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+        <p role="alert" className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
           {error}
         </p>
       )}
@@ -315,9 +326,18 @@ export function BacklogBoard({
             title={sprint.name}
             issues={groups.get(sprint.id) ?? []}
             progress={sprintProgress.get(sprint.id)}
+            accentColor={SPRINT_STATUS_COLOR[sprint.status]}
             right={
               <div className="flex flex-wrap items-center gap-2">
-                <span className="text-xs text-ink/50">{SPRINT_STATUS_LABEL[sprint.status]}</span>
+                <span
+                  className="rounded-full px-2 py-0.5 text-xs font-medium"
+                  style={{
+                    backgroundColor: `${SPRINT_STATUS_COLOR[sprint.status]}1a`,
+                    color: SPRINT_STATUS_COLOR[sprint.status],
+                  }}
+                >
+                  {SPRINT_STATUS_LABEL[sprint.status]}
+                </span>
                 <label className="flex items-center gap-1 text-xs text-ink/50">
                   Del
                   <input
