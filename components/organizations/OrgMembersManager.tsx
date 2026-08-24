@@ -119,7 +119,7 @@ export function OrgMembersManager({
   return (
     <div className="flex flex-col gap-6">
       {error && (
-        <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+        <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
           {error}
         </p>
       )}
@@ -130,13 +130,13 @@ export function OrgMembersManager({
           {members.map((member) => (
             <li
               key={member.id}
-              className="flex flex-wrap items-center gap-3 rounded-md border border-border bg-surface px-3 py-2 text-sm"
+              className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-surface px-3 py-2 text-sm"
             >
               <span className="font-medium">{member.user.name ?? member.user.email}</span>
               <span className="text-xs text-ink/50">{member.user.email}</span>
               {canManage ? (
                 <select
-                  className="ml-auto rounded-md border border-border bg-surface px-2 py-1 text-sm"
+                  className="ml-auto rounded-lg border border-border bg-surface px-2 py-1 text-sm"
                   value={member.role.id}
                   onChange={(e) => changeRole(member.id, e.target.value)}
                 >
@@ -181,7 +181,7 @@ export function OrgMembersManager({
               <div>
                 <label className="text-xs font-medium">Rol en la organización</label>
                 <select
-                  className="block rounded-md border border-border bg-surface px-2 py-2 text-sm"
+                  className="block rounded-lg border border-border bg-surface px-2 py-2 text-sm"
                   value={orgRoleId}
                   onChange={(e) => setOrgRoleId(e.target.value)}
                 >
@@ -210,7 +210,7 @@ export function OrgMembersManager({
                 <div>
                   <label className="text-xs font-medium">Proyecto</label>
                   <select
-                    className="block rounded-md border border-border bg-surface px-2 py-2 text-sm"
+                    className="block rounded-lg border border-border bg-surface px-2 py-2 text-sm"
                     value={projectId}
                     onChange={(e) => setProjectId(e.target.value)}
                   >
@@ -224,7 +224,7 @@ export function OrgMembersManager({
                 <div>
                   <label className="text-xs font-medium">Rol en el proyecto</label>
                   <select
-                    className="block rounded-md border border-border bg-surface px-2 py-2 text-sm"
+                    className="block rounded-lg border border-border bg-surface px-2 py-2 text-sm"
                     value={projectRoleId}
                     onChange={(e) => setProjectRoleId(e.target.value)}
                   >
@@ -245,7 +245,7 @@ export function OrgMembersManager({
           </form>
 
           {lastLink && (
-            <div className="mt-3 flex flex-col gap-2 rounded-md border border-border bg-surface p-3 text-sm">
+            <div className="mt-3 flex flex-col gap-2 rounded-lg border border-border bg-surface p-3 text-sm">
               <p className="text-ink/70">
                 {lastLink.emailed
                   ? "Se mandó un correo de invitación. También puedes compartir este enlace:"
@@ -272,7 +272,7 @@ export function OrgMembersManager({
               return (
                 <li
                   key={inv.id}
-                  className="flex flex-wrap items-center gap-2 rounded-md border border-border bg-surface px-3 py-2 text-sm"
+                  className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-sm"
                 >
                   <span className="font-medium">{inv.email}</span>
                   <span className="text-xs text-ink/50">

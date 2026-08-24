@@ -58,7 +58,7 @@ export function GlobalSearch() {
 
   return (
     <div ref={containerRef} className="relative min-w-0 max-w-sm flex-1">
-      <div className="flex items-center gap-1.5 rounded-md border border-border bg-bg px-2.5 py-1.5">
+      <div className="flex items-center gap-1.5 rounded-lg border border-border bg-bg px-2.5 py-1.5">
         <Search size={14} className="shrink-0 text-ink/40" />
         <input
           type="text"

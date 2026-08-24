@@ -60,7 +60,7 @@ export function CreateIssueForm({
         </label>
         <select
           id="issue-type"
-          className="block rounded-md border border-border bg-surface px-2 py-2 text-sm"
+          className="block rounded-lg border border-border bg-surface px-2 py-2 text-sm"
           value={issueTypeId}
           onChange={(e) => setIssueTypeId(e.target.value)}
         >

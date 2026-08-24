@@ -68,7 +68,7 @@ function LoginForm() {
         <Logo size="lg" />
         <p className="mt-3 text-sm text-ink/60">Inicia sesión para continuar</p>
 
-        <div className="mt-6 flex gap-2 rounded-md border border-border p-1 text-sm">
+        <div className="mt-6 flex gap-2 rounded-lg border border-border p-1 text-sm">
           <button
             type="button"
             onClick={() => setMode("password")}

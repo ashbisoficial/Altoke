@@ -73,7 +73,7 @@ export default async function MyTasksPage() {
                     <li key={issue.id}>
                       <Link
                         href={`/issues/${issue.id}`}
-                        className="flex flex-wrap items-center gap-2.5 rounded-md border border-border bg-surface px-3 py-2 text-sm hover:border-accent"
+                        className="flex flex-wrap items-center gap-2.5 rounded-lg border border-border bg-surface px-3 py-2 text-sm hover:border-accent"
                       >
                         <span
                           className="h-2 w-2 shrink-0 rounded-full"

@@ -81,7 +81,7 @@ export function ProjectMembersManager({
   return (
     <div className="flex flex-col gap-4">
       {error && (
-        <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+        <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
           {error}
         </p>
       )}
@@ -90,13 +90,13 @@ export function ProjectMembersManager({
         {members.map((member) => (
           <li
             key={member.id}
-            className="flex flex-wrap items-center gap-3 rounded-md border border-border bg-surface px-3 py-2"
+            className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-surface px-3 py-2"
           >
             <span className="font-medium">{member.user.name ?? member.user.email}</span>
             <span className="text-xs text-ink/50">{member.user.email}</span>
             {canManage ? (
               <select
-                className="ml-auto rounded-md border border-border bg-surface px-2 py-1 text-sm"
+                className="ml-auto rounded-lg border border-border bg-surface px-2 py-1 text-sm"
                 value={member.role.id}
                 onChange={(e) => changeRole(member.id, e.target.value)}
               >
@@ -136,7 +136,7 @@ export function ProjectMembersManager({
           <div>
             <label className="text-xs font-medium">Rol</label>
             <select
-              className="block rounded-md border border-border bg-surface px-2 py-2 text-sm"
+              className="block rounded-lg border border-border bg-surface px-2 py-2 text-sm"
               value={roleId}
               onChange={(e) => setRoleId(e.target.value)}
             >

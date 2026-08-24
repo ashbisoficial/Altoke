@@ -21,9 +21,9 @@ export function ProjectNav({ projectId, active }: { projectId: string; active: P
           key={section.key}
           href={section.href(projectId)}
           aria-current={section.key === active ? "page" : undefined}
-          className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 font-medium transition-colors ${
+          className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 font-medium transition-colors ${
             section.key === active
-              ? "bg-surface text-ink shadow-sm"
+              ? "shadow-soft bg-surface text-accent"
               : "text-ink/60 hover:bg-surface/60 hover:text-ink"
           }`}
         >

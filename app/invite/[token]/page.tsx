@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/auth";
 import { AcceptInvitation } from "@/components/invitations/AcceptInvitation";
+import { Logo } from "@/components/layout/Logo";
 
 export default async function InvitePage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
@@ -24,8 +25,10 @@ export default async function InvitePage({ params }: { params: Promise<{ token: 
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-bg px-4">
-      <div className="w-full max-w-sm rounded-lg border border-border bg-surface p-8 text-center shadow-sm">
-        <h1 className="font-heading text-xl font-semibold">Altoke</h1>
+      <div className="shadow-soft w-full max-w-sm rounded-xl border border-border bg-surface p-8 text-center">
+        <div className="flex justify-center">
+          <Logo />
+        </div>
 
         {invitation.status === "REVOKED" ? (
           <p className="mt-4 text-sm text-ink/70">Esta invitación fue cancelada por quien la envió.</p>

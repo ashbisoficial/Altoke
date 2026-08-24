@@ -82,7 +82,7 @@ export function NotificationBell() {
           if (!loaded) load();
         }}
         aria-label="Notificaciones"
-        className="relative flex h-8 w-8 items-center justify-center rounded-md text-ink/70 hover:bg-bg hover:text-ink"
+        className="relative flex h-8 w-8 items-center justify-center rounded-lg text-ink/70 hover:bg-bg hover:text-ink"
       >
         <Bell size={17} />
         {unreadCount > 0 && (

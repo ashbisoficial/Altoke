@@ -124,7 +124,7 @@ export function WorkflowEditor({
   return (
     <div className="flex flex-col gap-8">
       {error && (
-        <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+        <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
           {error}
         </p>
       )}
@@ -138,7 +138,7 @@ export function WorkflowEditor({
             .map((status) => (
               <li
                 key={status.id}
-                className="flex flex-wrap items-center gap-3 rounded-md border border-border bg-surface px-3 py-2"
+                className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-surface px-3 py-2"
               >
                 <span className="h-3 w-3 rounded-full" style={{ backgroundColor: status.color }} />
                 <span className="font-medium">{status.name}</span>
@@ -180,7 +180,7 @@ export function WorkflowEditor({
             <div>
               <label className="text-xs font-medium">Categoría</label>
               <select
-                className="block rounded-md border border-border bg-surface px-2 py-2 text-sm"
+                className="block rounded-lg border border-border bg-surface px-2 py-2 text-sm"
                 value={statusCategory}
                 onChange={(e) => setStatusCategory(e.target.value as Status["category"])}
               >
@@ -197,7 +197,7 @@ export function WorkflowEditor({
                 type="color"
                 value={statusColor}
                 onChange={(e) => setStatusColor(e.target.value)}
-                className="block h-9 w-14 rounded-md border border-border bg-surface"
+                className="block h-9 w-14 rounded-lg border border-border bg-surface"
               />
             </div>
             <Button type="submit" disabled={savingStatus}>
@@ -214,7 +214,7 @@ export function WorkflowEditor({
           {transitions.map((t) => (
             <li
               key={t.id}
-              className="flex items-center gap-3 rounded-md border border-border bg-surface px-3 py-2"
+              className="flex items-center gap-3 rounded-lg border border-border bg-surface px-3 py-2"
             >
               <span className="font-medium">{t.name}</span>
               <span className="text-xs text-ink/60">
@@ -245,7 +245,7 @@ export function WorkflowEditor({
             <div>
               <label className="text-xs font-medium">Desde</label>
               <select
-                className="block rounded-md border border-border bg-surface px-2 py-2 text-sm"
+                className="block rounded-lg border border-border bg-surface px-2 py-2 text-sm"
                 value={fromStatusId}
                 onChange={(e) => setFromStatusId(e.target.value)}
               >
@@ -259,7 +259,7 @@ export function WorkflowEditor({
             <div>
               <label className="text-xs font-medium">Hacia</label>
               <select
-                className="block rounded-md border border-border bg-surface px-2 py-2 text-sm"
+                className="block rounded-lg border border-border bg-surface px-2 py-2 text-sm"
                 value={toStatusId}
                 onChange={(e) => setToStatusId(e.target.value)}
               >

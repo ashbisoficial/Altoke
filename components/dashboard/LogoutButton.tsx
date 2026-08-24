@@ -21,7 +21,7 @@ export function LogoutButton({ compact }: { compact?: boolean }) {
         type="button"
         onClick={handleLogout}
         aria-label="Cerrar sesión"
-        className="flex h-8 w-8 items-center justify-center rounded-md text-ink/70 hover:bg-bg hover:text-ink"
+        className="flex h-8 w-8 items-center justify-center rounded-lg text-ink/70 hover:bg-bg hover:text-ink"
       >
         <LogOut size={17} />
       </button>
