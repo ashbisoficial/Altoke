@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowLeft, Key } from "lucide-react";
+import { ArrowLeft, Key, Palette } from "lucide-react";
 import { getSessionUser } from "@/lib/auth";
 import { AccountSettings } from "@/components/account/AccountSettings";
 
@@ -23,7 +23,14 @@ export default async function AccountPage() {
 
       <AccountSettings initialName={user.name} email={user.email} />
 
-      <div className="mt-6 border-t border-border pt-4">
+      <div className="mt-6 flex flex-col gap-2 border-t border-border pt-4">
+        <Link
+          href="/account/appearance"
+          className="flex items-center gap-1.5 text-sm text-accent hover:underline underline-offset-4"
+        >
+          <Palette size={14} />
+          Apariencia — temas y colores
+        </Link>
         <Link
           href="/account/api-keys"
           className="flex items-center gap-1.5 text-sm text-accent hover:underline underline-offset-4"

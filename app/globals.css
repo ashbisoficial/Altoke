@@ -2,32 +2,132 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Cada valor es "R G B" (sin comas, sin rgb()) para que Tailwind pueda
+   generar los modificadores de opacidad (bg-accent/10, text-ink/60, etc.)
+   vía rgb(var(--x) / <alpha-value>) — ver tailwind.config.ts. */
 :root {
-  --bg: #faf7f2;
-  --surface: #ffffff;
-  --border: #e8e1d6;
-  --ink: #221f2c;
-  --accent: #2952cc;
-  --accent2: #f2653c;
-  --accent3: #7c3aed;
-  --status-todo: #94a3b8;
-  --status-progress: #2952cc;
-  --status-review: #d97706;
-  --status-done: #16a34a;
+  --bg: 250 247 242;
+  --surface: 255 255 255;
+  --border: 232 225 214;
+  --ink: 34 31 44;
+  --accent: 41 82 204;
+  --accent-ink: 255 255 255;
+  --accent2: 242 101 60;
+  --accent3: 124 58 237;
+  --status-todo: 148 163 184;
+  --status-progress: 41 82 204;
+  --status-review: 217 119 6;
+  --status-done: 22 163 74;
+}
+
+/* Oscuro */
+:root[data-theme="dark"] {
+  --bg: 21 19 28;
+  --surface: 30 27 39;
+  --border: 50 45 61;
+  --ink: 242 240 245;
+  --accent: 76 111 255;
+  --accent-ink: 255 255 255;
+  --accent2: 255 139 107;
+  --accent3: 167 139 250;
+  --status-todo: 139 147 168;
+  --status-progress: 76 111 255;
+  --status-review: 245 165 36;
+  --status-done: 52 211 153;
+}
+
+/* Retro */
+:root[data-theme="retro"] {
+  --bg: 241 228 206;
+  --surface: 251 243 227;
+  --border: 216 195 157;
+  --ink: 59 46 32;
+  --accent: 180 85 42;
+  --accent-ink: 255 255 255;
+  --accent2: 124 138 74;
+  --accent3: 140 94 60;
+  --status-todo: 163 143 109;
+  --status-progress: 180 85 42;
+  --status-review: 199 154 60;
+  --status-done: 95 122 61;
+}
+
+/* Minimalista */
+:root[data-theme="minimal"] {
+  --bg: 255 255 255;
+  --surface: 255 255 255;
+  --border: 229 229 229;
+  --ink: 23 23 23;
+  --accent: 23 23 23;
+  --accent-ink: 255 255 255;
+  --accent2: 115 115 115;
+  --accent3: 82 82 82;
+  --status-todo: 161 161 170;
+  --status-progress: 63 63 70;
+  --status-review: 113 113 122;
+  --status-done: 34 197 94;
+}
+
+/* Maximalista */
+:root[data-theme="maximal"] {
+  --bg: 255 244 251;
+  --surface: 255 255 255;
+  --border: 255 209 236;
+  --ink: 26 11 46;
+  --accent: 255 45 120;
+  --accent-ink: 255 255 255;
+  --accent2: 255 184 0;
+  --accent3: 123 47 255;
+  --status-todo: 100 116 139;
+  --status-progress: 255 45 120;
+  --status-review: 255 184 0;
+  --status-done: 0 196 140;
+}
+
+/* Futurista */
+:root[data-theme="futuristic"] {
+  --bg: 6 11 24;
+  --surface: 13 21 38;
+  --border: 28 42 69;
+  --ink: 228 242 255;
+  --accent: 0 229 255;
+  --accent-ink: 6 11 24;
+  --accent2: 124 77 255;
+  --accent3: 0 255 163;
+  --status-todo: 91 114 144;
+  --status-progress: 0 229 255;
+  --status-review: 255 176 32;
+  --status-done: 0 255 163;
+}
+
+/* Gamer */
+:root[data-theme="gamer"] {
+  --bg: 10 10 15;
+  --surface: 19 19 25;
+  --border: 38 35 46;
+  --ink: 245 245 255;
+  --accent: 57 255 20;
+  --accent-ink: 10 10 15;
+  --accent2: 255 0 60;
+  --accent3: 176 38 255;
+  --status-todo: 107 107 122;
+  --status-progress: 57 255 20;
+  --status-review: 255 214 0;
+  --status-done: 0 255 156;
 }
 
 * {
-  border-color: var(--border);
+  border-color: rgb(var(--border));
 }
 
 body {
-  background: var(--bg);
-  color: var(--ink);
+  background: rgb(var(--bg));
+  color: rgb(var(--ink));
 }
 
 /* Accessible, visible focus ring everywhere — never suppressed. */
 :focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid rgb(var(--accent));
   outline-offset: 2px;
   border-radius: 2px;
 }
@@ -50,7 +150,7 @@ body {
 
   /* Soft, colored elevation for cards — friendlier than a flat gray shadow. */
   .shadow-soft {
-    box-shadow: 0 6px 20px -6px rgba(41, 82, 204, 0.16);
+    box-shadow: 0 6px 20px -6px rgb(var(--accent) / 0.16);
   }
 
   .shadow-soft-hover {
@@ -60,7 +160,7 @@ body {
   }
 
   .shadow-soft-hover:hover {
-    box-shadow: 0 10px 24px -8px rgba(41, 82, 204, 0.22);
+    box-shadow: 0 10px 24px -8px rgb(var(--accent) / 0.22);
     transform: translateY(-1px);
   }
 
@@ -76,7 +176,7 @@ body {
     left: 0;
     right: 0;
     top: 2rem;
-    border-top: 1.5px dashed var(--border);
+    border-top: 1.5px dashed rgb(var(--border));
   }
 
   .ticket-stub::before {
@@ -87,7 +187,7 @@ body {
     width: 12px;
     height: 12px;
     border-radius: 9999px;
-    background: var(--bg);
-    border: 1.5px solid var(--border);
+    background: rgb(var(--bg));
+    border: 1.5px solid rgb(var(--border));
   }
 }

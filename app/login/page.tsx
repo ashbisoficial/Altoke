@@ -72,14 +72,14 @@ function LoginForm() {
           <button
             type="button"
             onClick={() => setMode("password")}
-            className={`flex-1 rounded px-3 py-1.5 ${mode === "password" ? "bg-accent text-white" : "text-ink/70"}`}
+            className={`flex-1 rounded px-3 py-1.5 ${mode === "password" ? "bg-accent text-accentInk" : "text-ink/70"}`}
           >
             Contraseña
           </button>
           <button
             type="button"
             onClick={() => setMode("magic-link")}
-            className={`flex-1 rounded px-3 py-1.5 ${mode === "magic-link" ? "bg-accent text-white" : "text-ink/70"}`}
+            className={`flex-1 rounded px-3 py-1.5 ${mode === "magic-link" ? "bg-accent text-accentInk" : "text-ink/70"}`}
           >
             Enlace mágico
           </button>

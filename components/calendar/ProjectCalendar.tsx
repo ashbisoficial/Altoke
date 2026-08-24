@@ -189,7 +189,7 @@ export function ProjectCalendar({
                 >
                   <span
                     className={`flex h-5 w-5 items-center justify-center rounded-full text-[11px] ${
-                      isToday ? "bg-accent font-semibold text-white" : "text-ink/70"
+                      isToday ? "bg-accent font-semibold text-accentInk" : "text-ink/70"
                     }`}
                   >
                     {day.getDate()}

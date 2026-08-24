@@ -56,7 +56,7 @@ function ToolButton({
       title={label}
       aria-label={label}
       className={`flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium transition-colors ${
-        active ? "bg-accent text-white shadow-soft" : "text-ink/70 hover:bg-bg hover:text-ink"
+        active ? "bg-accent text-accentInk shadow-soft" : "text-ink/70 hover:bg-bg hover:text-ink"
       }`}
     >
       {icon}
@@ -534,7 +534,7 @@ export function MuralCanvas({
         onWheel={handleWheel}
         className="relative flex-1 touch-none overflow-hidden bg-bg"
         style={{
-          backgroundImage: "radial-gradient(circle, var(--border) 1px, transparent 1px)",
+          backgroundImage: "radial-gradient(circle, rgb(var(--border)) 1px, transparent 1px)",
           backgroundSize: `${24 * view.scale}px ${24 * view.scale}px`,
           backgroundPosition: `${view.x}px ${view.y}px`,
           cursor: mode === "draw" ? "crosshair" : "grab",

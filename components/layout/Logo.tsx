@@ -9,7 +9,7 @@ export function LogoMark({ size = "md" }: { size?: keyof typeof SIZE_CLASSES }) 
     <span
       aria-hidden
       className={`flex shrink-0 items-center justify-center rounded-lg font-bold text-white shadow-soft ${SIZE_CLASSES[size]}`}
-      style={{ background: "linear-gradient(135deg, var(--accent), var(--accent3))" }}
+      style={{ background: "linear-gradient(135deg, rgb(var(--accent)), rgb(var(--accent3)))" }}
     >
       A
     </span>

@@ -10,18 +10,21 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        bg: "#FAF7F2",
-        surface: "#FFFFFF",
-        border: "#E8E1D6",
-        ink: "#221F2C",
-        accent: "#2952CC",
-        accent2: "#F2653C",
-        accent3: "#7C3AED",
+        // Cada color resuelve a una variable CSS (ver globals.css), así que
+        // cambia solo con cambiar :root[data-theme] — sin tocar componentes.
+        bg: "rgb(var(--bg) / <alpha-value>)",
+        surface: "rgb(var(--surface) / <alpha-value>)",
+        border: "rgb(var(--border) / <alpha-value>)",
+        ink: "rgb(var(--ink) / <alpha-value>)",
+        accent: "rgb(var(--accent) / <alpha-value>)",
+        accentInk: "rgb(var(--accent-ink) / <alpha-value>)",
+        accent2: "rgb(var(--accent2) / <alpha-value>)",
+        accent3: "rgb(var(--accent3) / <alpha-value>)",
         status: {
-          todo: "#94A3B8",
-          progress: "#2952CC",
-          review: "#D97706",
-          done: "#16A34A",
+          todo: "rgb(var(--status-todo) / <alpha-value>)",
+          progress: "rgb(var(--status-progress) / <alpha-value>)",
+          review: "rgb(var(--status-review) / <alpha-value>)",
+          done: "rgb(var(--status-done) / <alpha-value>)",
         },
       },
       fontFamily: {
