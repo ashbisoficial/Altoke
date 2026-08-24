@@ -1,33 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getSessionUser } from "@/lib/auth";
+import { getApiUser } from "@/lib/api-auth";
 import { errorResponse, forbidden, notFound, unauthorized, zodErrorResponse } from "@/lib/http";
 import { hasProjectPermission, isProjectMember } from "@/lib/permissions";
 import { ServiceError, updateIssue, updateIssueInput } from "@/lib/issue-service";
 
-export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const user = await getSessionUser();
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const user = await getApiUser(request);
   if (!user) return unauthorized();
   const { id } = await params;
 
   const issue = await prisma.issue.findUnique({
     where: { id },
     include: {
-      issueType: true,
-      status: true,
-      assignee: { select: { id: true, name: true, email: true, avatarUrl: true } },
-      reporter: { select: { id: true, name: true, email: true, avatarUrl: true } },
+      issueType: { select: { id: true, name: true, color: true } },
+      status: { select: { id: true, name: true, color: true, category: true } },
+      assignee: { select: { id: true, name: true, email: true } },
+      reporter: { select: { id: true, name: true, email: true } },
       labels: { include: { label: true } },
-      components: { include: { component: true } },
-      comments: {
-        include: { author: { select: { id: true, name: true, email: true, avatarUrl: true } } },
-        orderBy: { createdAt: "asc" },
-      },
-      attachments: true,
-      children: { include: { issueType: true, status: true } },
-      parent: { select: { id: true, key: true, title: true } },
-      linksFrom: { include: { target: { select: { id: true, key: true, title: true } } } },
-      linksTo: { include: { source: { select: { id: true, key: true, title: true } } } },
     },
   });
   if (!issue) return notFound("Incidencia");
@@ -37,7 +27,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
 }
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const user = await getSessionUser();
+  const user = await getApiUser(request);
   if (!user) return unauthorized();
   const { id } = await params;
 
@@ -55,17 +45,4 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (e instanceof ServiceError) return errorResponse(e.status, e.message);
     throw e;
   }
-}
-
-export async function DELETE(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const user = await getSessionUser();
-  if (!user) return unauthorized();
-  const { id } = await params;
-
-  const existing = await prisma.issue.findUnique({ where: { id } });
-  if (!existing) return notFound("Incidencia");
-  if (!(await hasProjectPermission(user.id, existing.projectId, "issue.delete"))) return forbidden();
-
-  await prisma.issue.delete({ where: { id } });
-  return NextResponse.json({ ok: true });
 }

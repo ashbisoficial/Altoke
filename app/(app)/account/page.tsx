@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Key } from "lucide-react";
 import { getSessionUser } from "@/lib/auth";
 import { AccountSettings } from "@/components/account/AccountSettings";
 
@@ -22,6 +22,16 @@ export default async function AccountPage() {
       </header>
 
       <AccountSettings initialName={user.name} email={user.email} />
+
+      <div className="mt-6 border-t border-border pt-4">
+        <Link
+          href="/account/api-keys"
+          className="flex items-center gap-1.5 text-sm text-accent hover:underline underline-offset-4"
+        >
+          <Key size={14} />
+          Llaves de API — conectar Altoke con otras herramientas
+        </Link>
+      </div>
     </main>
   );
 }

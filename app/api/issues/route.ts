@@ -1,22 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/auth";
-import { errorResponse, forbidden, notFound, unauthorized, zodErrorResponse } from "@/lib/http";
+import { errorResponse, forbidden, unauthorized, zodErrorResponse } from "@/lib/http";
 import { hasProjectPermission, isProjectMember } from "@/lib/permissions";
-
-const createIssueSchema = z.object({
-  projectId: z.string().min(1),
-  issueTypeId: z.string().min(1),
-  title: z.string().trim().min(1).max(255),
-  description: z.string().trim().max(10000).optional(),
-  priority: z.enum(["HIGHEST", "HIGH", "MEDIUM", "LOW", "LOWEST"]).optional(),
-  assigneeId: z.string().min(1).optional(),
-  parentId: z.string().min(1).optional(),
-  sprintId: z.string().min(1).optional(),
-  storyPoints: z.number().int().min(0).max(999).optional(),
-  dueDate: z.string().datetime().optional(),
-});
+import { ServiceError, createIssue, createIssueInput } from "@/lib/issue-service";
 
 export async function GET(request: NextRequest) {
   const user = await getSessionUser();
@@ -56,54 +43,16 @@ export async function POST(request: NextRequest) {
   const user = await getSessionUser();
   if (!user) return unauthorized();
 
-  const parsed = createIssueSchema.safeParse(await request.json().catch(() => null));
+  const parsed = createIssueInput.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return zodErrorResponse(parsed.error);
-  const data = parsed.data;
 
-  if (!(await hasProjectPermission(user.id, data.projectId, "issue.create"))) return forbidden();
+  if (!(await hasProjectPermission(user.id, parsed.data.projectId, "issue.create"))) return forbidden();
 
-  const project = await prisma.project.findUnique({
-    where: { id: data.projectId },
-    include: { workflow: { include: { statuses: true } } },
-  });
-  if (!project) return notFound("Proyecto");
-
-  const issueType = await prisma.issueType.findFirst({
-    where: { id: data.issueTypeId, projectId: data.projectId },
-  });
-  if (!issueType) return errorResponse(400, "Tipo de incidencia inválido para este proyecto");
-
-  const initialStatus =
-    project.workflow.statuses.find((s) => s.isInitial) ?? project.workflow.statuses[0];
-  if (!initialStatus) return errorResponse(500, "El proyecto no tiene un flujo de trabajo válido");
-
-  const issue = await prisma.$transaction(async (tx) => {
-    const updatedProject = await tx.project.update({
-      where: { id: data.projectId },
-      data: { issueCounter: { increment: 1 } },
-    });
-    const number = updatedProject.issueCounter;
-
-    return tx.issue.create({
-      data: {
-        projectId: data.projectId,
-        number,
-        key: `${updatedProject.key}-${number}`,
-        issueTypeId: data.issueTypeId,
-        title: data.title,
-        description: data.description,
-        priority: data.priority ?? "MEDIUM",
-        assigneeId: data.assigneeId,
-        parentId: data.parentId,
-        sprintId: data.sprintId,
-        storyPoints: data.storyPoints,
-        dueDate: data.dueDate ? new Date(data.dueDate) : undefined,
-        statusId: initialStatus.id,
-        reporterId: user.id,
-      },
-      include: { issueType: true, status: true, assignee: true, reporter: true },
-    });
-  });
-
-  return NextResponse.json({ issue }, { status: 201 });
+  try {
+    const issue = await createIssue(user.id, parsed.data);
+    return NextResponse.json({ issue }, { status: 201 });
+  } catch (e) {
+    if (e instanceof ServiceError) return errorResponse(e.status, e.message);
+    throw e;
+  }
 }

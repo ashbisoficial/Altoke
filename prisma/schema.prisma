@@ -46,6 +46,26 @@ model User {
   muralElements   MuralElement[]  @relation("MuralElementCreatedBy")
   invitationsSent Invitation[]    @relation("InvitationInvitedBy")
   notifications   Notification[]
+  apiKeys         ApiKey[]        @relation("ApiKeyOwner")
+}
+
+/// Una llave para usar la API pública (/api/v1) desde otra herramienta,
+/// actuando como el usuario dueño de la llave — mismos permisos que si
+/// hubiera iniciado sesión. Solo se guarda el hash; el valor real se
+/// muestra una única vez, al crearla.
+model ApiKey {
+  id         String    @id @default(cuid())
+  name       String
+  keyPrefix  String
+  keyHash    String    @unique
+  userId     String
+  createdAt  DateTime  @default(now())
+  lastUsedAt DateTime?
+  revokedAt  DateTime?
+
+  user User @relation("ApiKeyOwner", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 enum RoleScope {

@@ -11,6 +11,9 @@ const PUBLIC_PATHS = [
   "/manifest.webmanifest",
   "/sw.js",
   "/offline.html",
+  // Public API — authenticates itself via an Authorization: Bearer <api key>
+  // header (see lib/api-auth.ts), not the Supabase session cookie.
+  "/api/v1",
 ];
 
 function isPublicPath(pathname: string) {
