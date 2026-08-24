@@ -11,9 +11,17 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { Logo } from "@/components/layout/Logo";
 
 const BUTTON_CLASSES =
-  "inline-flex items-center justify-center gap-2 rounded-md bg-accent px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-accent/90";
+  "inline-flex items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white shadow-soft transition-all hover:bg-accent/90 hover:-translate-y-px";
+
+const ACCENT_COLORS = [
+  { bg: "bg-accent/10", text: "text-accent" },
+  { bg: "bg-accent2/10", text: "text-accent2" },
+  { bg: "bg-accent3/10", text: "text-accent3" },
+  { bg: "bg-status-done/10", text: "text-status-done" },
+];
 
 const FEATURES = [
   {
@@ -74,7 +82,7 @@ export default async function Home() {
   return (
     <main className="bg-bg">
       <header className="mx-auto flex max-w-6xl items-center justify-between px-4 py-5">
-        <span className="font-heading text-xl font-semibold">Altoke</span>
+        <Logo />
         <nav className="flex items-center gap-2">
           {user ? (
             <Link href="/dashboard" className={BUTTON_CLASSES}>
@@ -84,7 +92,7 @@ export default async function Home() {
             <>
               <Link
                 href="/login"
-                className="rounded-md px-3 py-2 text-sm font-medium text-ink/70 hover:text-ink"
+                className="rounded-lg px-3 py-2 text-sm font-medium text-ink/70 hover:text-ink"
               >
                 Iniciar sesión
               </Link>
@@ -96,47 +104,70 @@ export default async function Home() {
         </nav>
       </header>
 
-      <section className="mx-auto max-w-3xl px-4 pb-16 pt-10 text-center sm:pt-16">
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1 text-xs font-medium text-ink/60">
-          <Sparkles size={13} className="text-accent" />
-          100% gratis, sin trucos
-        </span>
-        <h1 className="mt-5 text-balance font-heading text-4xl font-semibold leading-tight sm:text-5xl">
-          Organiza tus proyectos sin complicarte
-        </h1>
-        <p className="mx-auto mt-4 max-w-xl text-balance text-base text-ink/60 sm:text-lg">
-          Altoke es una herramienta para planificar y hacer seguimiento de proyectos en equipo —
-          con tablero, backlog, calendario y una pizarra colaborativa. Pensada para que cualquiera
-          la use, aunque nunca haya usado algo así antes.
-        </p>
-        <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
-          <Link href={user ? "/dashboard" : "/signup"} className={`${BUTTON_CLASSES} px-6 py-3 text-base`}>
-            {user ? "Ir a mi panel" : "Crear cuenta gratis"}
-            <ArrowRight size={16} />
-          </Link>
-          {!user && (
-            <Link
-              href="/login"
-              className="rounded-md border border-border bg-surface px-6 py-3 text-base font-medium hover:bg-bg"
-            >
-              Ya tengo cuenta
+      <section className="relative overflow-hidden">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -left-24 -top-24 h-72 w-72 rounded-full bg-accent2/20 blur-3xl"
+        />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -right-20 top-10 h-64 w-64 rounded-full bg-accent3/20 blur-3xl"
+        />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute left-1/2 top-40 h-56 w-56 -translate-x-1/2 rounded-full bg-accent/10 blur-3xl"
+        />
+
+        <div className="relative mx-auto max-w-3xl px-4 pb-16 pt-10 text-center sm:pt-16">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1 text-xs font-medium text-ink/60">
+            <Sparkles size={13} className="text-accent2" />
+            100% gratis, sin trucos
+          </span>
+          <h1 className="mt-5 text-balance font-heading text-4xl font-semibold leading-tight sm:text-5xl">
+            Organiza tus proyectos sin complicarte
+          </h1>
+          <p className="mx-auto mt-4 max-w-xl text-balance text-base text-ink/60 sm:text-lg">
+            Altoke es una herramienta para planificar y hacer seguimiento de proyectos en equipo —
+            con tablero, backlog, calendario y una pizarra colaborativa. Pensada para que cualquiera
+            la use, aunque nunca haya usado algo así antes.
+          </p>
+          <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
+            <Link href={user ? "/dashboard" : "/signup"} className={`${BUTTON_CLASSES} px-6 py-3 text-base`}>
+              {user ? "Ir a mi panel" : "Crear cuenta gratis"}
+              <ArrowRight size={16} />
             </Link>
-          )}
+            {!user && (
+              <Link
+                href="/login"
+                className="rounded-lg border border-border bg-surface px-6 py-3 text-base font-medium hover:bg-bg"
+              >
+                Ya tengo cuenta
+              </Link>
+            )}
+          </div>
         </div>
       </section>
 
       <section className="mx-auto max-w-5xl px-4 pb-16">
         <h2 className="text-center font-heading text-2xl font-semibold">¿Cómo se usa?</h2>
         <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {STEPS.map((step) => (
-            <div key={step.n} className="rounded-lg border border-border bg-surface p-5">
-              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-accent/10 font-heading text-sm font-semibold text-accent">
-                {step.n}
-              </span>
-              <h3 className="mt-3 font-medium">{step.title}</h3>
-              <p className="mt-1 text-sm text-ink/60">{step.text}</p>
-            </div>
-          ))}
+          {STEPS.map((step, i) => {
+            const color = ACCENT_COLORS[i % ACCENT_COLORS.length];
+            return (
+              <div
+                key={step.n}
+                className="shadow-soft-hover rounded-xl border border-border bg-surface p-5"
+              >
+                <span
+                  className={`flex h-8 w-8 items-center justify-center rounded-full font-heading text-sm font-semibold ${color.bg} ${color.text}`}
+                >
+                  {step.n}
+                </span>
+                <h3 className="mt-3 font-medium">{step.title}</h3>
+                <p className="mt-1 text-sm text-ink/60">{step.text}</p>
+              </div>
+            );
+          })}
         </div>
       </section>
 
@@ -146,18 +177,30 @@ export default async function Home() {
           Todo lo que necesita un equipo para organizarse, explicado en criollo — nada de jerga.
         </p>
         <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {FEATURES.map((feature) => (
-            <div key={feature.title} className="rounded-lg border border-border bg-surface p-5">
-              <feature.icon size={20} className="text-accent" />
-              <h3 className="mt-3 font-medium">{feature.title}</h3>
-              <p className="mt-1 text-sm text-ink/60">{feature.text}</p>
-            </div>
-          ))}
+          {FEATURES.map((feature, i) => {
+            const color = ACCENT_COLORS[i % ACCENT_COLORS.length];
+            return (
+              <div
+                key={feature.title}
+                className="shadow-soft-hover rounded-xl border border-border bg-surface p-5"
+              >
+                <span className={`inline-flex h-10 w-10 items-center justify-center rounded-lg ${color.bg}`}>
+                  <feature.icon size={20} className={color.text} />
+                </span>
+                <h3 className="mt-3 font-medium">{feature.title}</h3>
+                <p className="mt-1 text-sm text-ink/60">{feature.text}</p>
+              </div>
+            );
+          })}
         </div>
       </section>
 
-      <section className="border-t border-border bg-surface">
-        <div className="mx-auto flex max-w-3xl flex-col items-center gap-4 px-4 py-14 text-center">
+      <section className="relative overflow-hidden border-t border-border bg-surface">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-accent2/10 blur-3xl"
+        />
+        <div className="relative mx-auto flex max-w-3xl flex-col items-center gap-4 px-4 py-14 text-center">
           <h2 className="font-heading text-2xl font-semibold">Empieza en menos de un minuto</h2>
           <p className="max-w-md text-sm text-ink/60">
             No necesitas saber de gestión de proyectos ni haber usado herramientas como esta antes.

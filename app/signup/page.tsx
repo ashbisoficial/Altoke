@@ -5,6 +5,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { Logo } from "@/components/layout/Logo";
 
 export default function SignupPage() {
   const [name, setName] = useState("");
@@ -37,9 +38,9 @@ export default function SignupPage() {
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-bg px-4">
-      <div className="w-full max-w-sm rounded-lg border border-border bg-surface p-8 shadow-sm">
-        <h1 className="font-heading text-2xl font-semibold">Crea tu cuenta</h1>
-        <p className="mt-1 text-sm text-ink/60">Empieza a usar Altoke gratis</p>
+      <div className="w-full max-w-sm rounded-xl border border-border bg-surface p-8 shadow-soft">
+        <Logo size="lg" />
+        <p className="mt-3 text-sm text-ink/60">Empieza a usar Altoke gratis</p>
 
         {done ? (
           <p className="mt-6 text-sm text-ink/70">

@@ -6,6 +6,14 @@ import { getSessionUser } from "@/lib/auth";
 import { CreateOrgForm } from "@/components/dashboard/CreateOrgForm";
 import { CreateProjectForm } from "@/components/dashboard/CreateProjectForm";
 
+const PROJECT_ACCENTS = [
+  { bar: "bg-accent", chip: "bg-accent/10 text-accent" },
+  { bar: "bg-accent2", chip: "bg-accent2/10 text-accent2" },
+  { bar: "bg-accent3", chip: "bg-accent3/10 text-accent3" },
+  { bar: "bg-status-done", chip: "bg-status-done/10 text-status-done" },
+  { bar: "bg-status-review", chip: "bg-status-review/10 text-status-review" },
+];
+
 export default async function DashboardPage() {
   const user = await getSessionUser();
   if (!user) redirect("/login");
@@ -59,20 +67,28 @@ export default async function DashboardPage() {
               <p className="mt-2 text-sm text-ink/60">Sin proyectos todavía.</p>
             ) : (
               <ul className="mt-3 grid gap-3 sm:grid-cols-2">
-                {org.projects.map((project) => (
-                  <li key={project.id}>
-                    <Link
-                      href={`/board?projectId=${project.id}`}
-                      className="block rounded-lg border border-border bg-surface p-4 transition-colors hover:border-accent"
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="font-mono text-xs text-accent">{project.key}</span>
-                        <span className="text-xs text-ink/50">{project._count.issues} incidencias</span>
-                      </div>
-                      <p className="mt-1 font-heading text-base font-medium">{project.name}</p>
-                    </Link>
-                  </li>
-                ))}
+                {org.projects.map((project, i) => {
+                  const accent = PROJECT_ACCENTS[i % PROJECT_ACCENTS.length];
+                  return (
+                    <li key={project.id}>
+                      <Link
+                        href={`/board?projectId=${project.id}`}
+                        className="shadow-soft-hover block overflow-hidden rounded-xl border border-border bg-surface transition-colors hover:border-accent"
+                      >
+                        <div className={`h-1.5 ${accent.bar}`} />
+                        <div className="p-4">
+                          <div className="flex items-center justify-between">
+                            <span className={`rounded-full px-2 py-0.5 font-mono text-xs ${accent.chip}`}>
+                              {project.key}
+                            </span>
+                            <span className="text-xs text-ink/50">{project._count.issues} incidencias</span>
+                          </div>
+                          <p className="mt-2 font-heading text-base font-medium">{project.name}</p>
+                        </div>
+                      </Link>
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </section>

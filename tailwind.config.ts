@@ -10,11 +10,13 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        bg: "#F5F6F8",
+        bg: "#FAF7F2",
         surface: "#FFFFFF",
-        border: "#E3E5EA",
-        ink: "#14161F",
+        border: "#E8E1D6",
+        ink: "#221F2C",
         accent: "#2952CC",
+        accent2: "#F2653C",
+        accent3: "#7C3AED",
         status: {
           todo: "#94A3B8",
           progress: "#2952CC",

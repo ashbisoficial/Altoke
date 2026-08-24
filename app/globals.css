@@ -3,11 +3,13 @@
 @tailwind utilities;
 
 :root {
-  --bg: #f5f6f8;
+  --bg: #faf7f2;
   --surface: #ffffff;
-  --border: #e3e5ea;
-  --ink: #14161f;
+  --border: #e8e1d6;
+  --ink: #221f2c;
   --accent: #2952cc;
+  --accent2: #f2653c;
+  --accent3: #7c3aed;
   --status-todo: #94a3b8;
   --status-progress: #2952cc;
   --status-review: #d97706;
@@ -44,6 +46,22 @@ body {
 @layer utilities {
   .text-balance {
     text-wrap: balance;
+  }
+
+  /* Soft, colored elevation for cards — friendlier than a flat gray shadow. */
+  .shadow-soft {
+    box-shadow: 0 6px 20px -6px rgba(41, 82, 204, 0.16);
+  }
+
+  .shadow-soft-hover {
+    transition:
+      box-shadow 0.15s ease,
+      transform 0.15s ease;
+  }
+
+  .shadow-soft-hover:hover {
+    box-shadow: 0 10px 24px -8px rgba(41, 82, 204, 0.22);
+    transform: translateY(-1px);
   }
 
   /* "Ticket stub" signature: a perforated dashed line separating the
