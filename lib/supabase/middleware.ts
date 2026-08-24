@@ -8,6 +8,9 @@ const PUBLIC_PATHS = [
   "/auth/auth-code-error",
   "/invite",
   "/api/invitations",
+  "/manifest.webmanifest",
+  "/sw.js",
+  "/offline.html",
 ];
 
 function isPublicPath(pathname: string) {
