@@ -73,7 +73,7 @@ export function TestCaseForm({
   return (
     <form
       onSubmit={handleSubmit}
-      className="flex flex-col gap-3 rounded-lg border border-border bg-surface p-4"
+      className="shadow-soft flex flex-col gap-3 rounded-xl border border-border bg-surface p-4"
     >
       <div>
         <label className="text-sm font-medium" htmlFor="tc-title">
@@ -90,7 +90,7 @@ export function TestCaseForm({
           value={preconditions}
           onChange={(e) => setPreconditions(e.target.value)}
           rows={2}
-          className="w-full rounded-md border border-border bg-surface p-2 text-sm"
+          className="w-full rounded-lg border border-border bg-surface p-2 text-sm"
         />
       </div>
 
@@ -133,7 +133,7 @@ export function TestCaseForm({
       {requirements.length > 0 && (
         <div>
           <span className="text-sm font-medium">Requisitos que cubre</span>
-          <div className="mt-1 flex max-h-32 flex-col gap-1 overflow-y-auto rounded-md border border-border p-2">
+          <div className="mt-1 flex max-h-32 flex-col gap-1 overflow-y-auto rounded-lg border border-border p-2">
             {requirements.map((r) => (
               <label key={r.id} className="flex items-center gap-2 text-sm">
                 <input

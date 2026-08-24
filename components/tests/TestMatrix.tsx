@@ -113,7 +113,7 @@ export function TestMatrix({
   return (
     <div>
       {error && (
-        <p role="alert" className="mb-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+        <p role="alert" className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
           {error}
         </p>
       )}
@@ -133,7 +133,7 @@ export function TestMatrix({
         {availableCases.length > 0 && (
           <div className="flex gap-2">
             <select
-              className="rounded-md border border-border bg-surface px-2 py-1.5 text-sm"
+              className="rounded-lg border border-border bg-surface px-2 py-1.5 text-sm"
               value={selectedCaseId}
               onChange={(e) => setSelectedCaseId(e.target.value)}
             >
@@ -212,10 +212,10 @@ export function TestMatrix({
       )}
 
       {activeRun && (
-        <div className="mt-4 flex flex-col gap-2 rounded-lg border border-border bg-surface p-4">
+        <div className="shadow-soft mt-4 flex flex-col gap-2 rounded-xl border border-border bg-surface p-4">
           <h3 className="text-sm font-semibold">Actualizar resultado</h3>
           <select
-            className="rounded-md border border-border bg-surface px-2 py-1.5 text-sm"
+            className="rounded-lg border border-border bg-surface px-2 py-1.5 text-sm"
             value={status}
             onChange={(e) => setStatus(e.target.value as RunStatus)}
           >
@@ -230,7 +230,7 @@ export function TestMatrix({
             onChange={(e) => setComment(e.target.value)}
             rows={2}
             placeholder="Comentario / evidencia (opcional)"
-            className="w-full rounded-md border border-border bg-surface p-2 text-sm"
+            className="w-full rounded-lg border border-border bg-surface p-2 text-sm"
           />
           <div className="flex gap-2">
             <Button onClick={saveRun} disabled={saving}>

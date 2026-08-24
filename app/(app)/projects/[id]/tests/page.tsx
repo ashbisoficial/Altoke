@@ -62,7 +62,7 @@ export default async function ProjectTestsPage({ params }: { params: Promise<{ i
       </header>
 
       {coveragePct !== null && (
-        <div className="mb-6 rounded-lg border border-border bg-surface p-4">
+        <div className="shadow-soft mb-6 rounded-xl border border-border bg-surface p-4">
           <div className="flex items-center justify-between text-sm">
             <span className="font-medium">Cobertura de requisitos</span>
             <span className="font-mono">
@@ -93,7 +93,7 @@ export default async function ProjectTestsPage({ params }: { params: Promise<{ i
                 <li key={tc.id}>
                   <Link
                     href={`/tests/${tc.id}`}
-                    className="flex items-center gap-3 rounded-md border border-border bg-surface px-3 py-2 text-sm hover:border-accent"
+                    className="shadow-soft-hover flex items-center gap-3 rounded-lg border border-border bg-surface px-3 py-2 text-sm hover:border-accent"
                   >
                     <span
                       className="h-2.5 w-2.5 shrink-0 rounded-full"
@@ -126,7 +126,7 @@ export default async function ProjectTestsPage({ params }: { params: Promise<{ i
               <li key={plan.id}>
                 <Link
                   href={`/test-plans/${plan.id}`}
-                  className="flex items-center gap-3 rounded-md border border-border bg-surface px-3 py-2 text-sm hover:border-accent"
+                  className="shadow-soft-hover flex items-center gap-3 rounded-lg border border-border bg-surface px-3 py-2 text-sm hover:border-accent"
                 >
                   <span className="flex-1 font-medium">{plan.name}</span>
                   <span className="shrink-0 text-xs text-ink/50">

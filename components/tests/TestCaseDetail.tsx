@@ -110,7 +110,7 @@ export function TestCaseDetail({
           value={preconditions}
           onChange={(e) => setPreconditions(e.target.value)}
           rows={2}
-          className="w-full rounded-md border border-border bg-surface p-3 text-sm"
+          className="w-full rounded-lg border border-border bg-surface p-3 text-sm"
         />
       </section>
 
@@ -123,13 +123,13 @@ export function TestCaseDetail({
                 placeholder={`Paso ${i + 1}`}
                 value={s.step}
                 onChange={(e) => updateStep(i, "step", e.target.value)}
-                className="flex-1 rounded-md border border-border bg-surface px-3 py-2 text-sm"
+                className="flex-1 rounded-lg border border-border bg-surface px-3 py-2 text-sm"
               />
               <input
                 placeholder="Resultado esperado"
                 value={s.expectedResult ?? ""}
                 onChange={(e) => updateStep(i, "expectedResult", e.target.value)}
-                className="flex-1 rounded-md border border-border bg-surface px-3 py-2 text-sm"
+                className="flex-1 rounded-lg border border-border bg-surface px-3 py-2 text-sm"
               />
               <button
                 type="button"
@@ -164,7 +164,7 @@ export function TestCaseDetail({
             {testCase.requirements.map((r) => (
               <li
                 key={r.issue.id}
-                className="flex items-center gap-2 rounded-md border border-border bg-surface px-3 py-2 text-sm"
+                className="flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-sm"
               >
                 <span className="font-mono text-xs text-accent">{r.issue.key}</span>
                 <span className="flex-1 truncate">{r.issue.title}</span>
@@ -183,7 +183,7 @@ export function TestCaseDetail({
         {otherRequirements.length > 0 && (
           <div className="flex gap-2">
             <select
-              className="flex-1 rounded-md border border-border bg-surface px-2 py-1.5 text-sm"
+              className="flex-1 rounded-lg border border-border bg-surface px-2 py-1.5 text-sm"
               value={requirementId}
               onChange={(e) => setRequirementId(e.target.value)}
             >
@@ -209,7 +209,7 @@ export function TestCaseDetail({
             {testCase.runs.map((run) => (
               <li
                 key={run.id}
-                className="flex items-center gap-2 rounded-md border border-border bg-surface px-3 py-2 text-sm"
+                className="flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-sm"
               >
                 <span
                   className="h-2.5 w-2.5 shrink-0 rounded-full"
