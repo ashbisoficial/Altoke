@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowLeft, Key, Palette } from "lucide-react";
+import { ArrowLeft, Key } from "lucide-react";
 import { getSessionUser } from "@/lib/auth";
 import { AccountSettings } from "@/components/account/AccountSettings";
+import { ThemePicker } from "@/components/theme/ThemePicker";
 
 export default async function AccountPage() {
   const user = await getSessionUser();
@@ -23,14 +24,16 @@ export default async function AccountPage() {
 
       <AccountSettings initialName={user.name} email={user.email} />
 
-      <div className="mt-6 flex flex-col gap-2 border-t border-border pt-4">
-        <Link
-          href="/account/appearance"
-          className="flex items-center gap-1.5 text-sm text-accent hover:underline underline-offset-4"
-        >
-          <Palette size={14} />
-          Apariencia — temas y colores
-        </Link>
+      <div className="mt-8 border-t border-border pt-6">
+        <h2 className="mb-1 font-heading text-lg font-semibold">Apariencia</h2>
+        <p className="mb-4 text-sm text-ink/60">
+          Cambiá el tema y los colores — también podés cambiarlo rápido desde el ícono de paleta
+          en la parte de arriba.
+        </p>
+        <ThemePicker />
+      </div>
+
+      <div className="mt-6 border-t border-border pt-4">
         <Link
           href="/account/api-keys"
           className="flex items-center gap-1.5 text-sm text-accent hover:underline underline-offset-4"

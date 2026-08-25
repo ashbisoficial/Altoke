@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { Check, RotateCcw } from "lucide-react";
-import { THEMES, THEME_STORAGE_KEY, CUSTOM_COLORS_STORAGE_KEY, DEFAULT_THEME, type ThemeId } from "@/lib/themes";
+import { THEMES, CUSTOM_COLORS_STORAGE_KEY, DEFAULT_THEME } from "@/lib/themes";
 import { hexToRgbTriple, rgbTripleToHex, readableInkFor } from "@/lib/color";
+import { useTheme } from "@/lib/hooks/useTheme";
 
 type CustomColors = { accent?: string; accent2?: string; accent3?: string };
 
@@ -23,15 +24,12 @@ function currentColors(): CustomColors {
 }
 
 export function ThemePicker() {
-  const [theme, setThemeState] = useState<ThemeId>(DEFAULT_THEME);
+  const { theme, setTheme, mounted: themeMounted } = useTheme();
   const [customEnabled, setCustomEnabled] = useState(false);
   const [colors, setColors] = useState<CustomColors>({});
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    const savedTheme = (localStorage.getItem(THEME_STORAGE_KEY) as ThemeId | null) ?? DEFAULT_THEME;
-    setThemeState(savedTheme);
-
     const savedColorsRaw = localStorage.getItem(CUSTOM_COLORS_STORAGE_KEY);
     if (savedColorsRaw) {
       try {
@@ -46,11 +44,8 @@ export function ThemePicker() {
     setMounted(true);
   }, []);
 
-  function applyTheme(id: ThemeId) {
-    setThemeState(id);
-    localStorage.setItem(THEME_STORAGE_KEY, id);
-    if (id === DEFAULT_THEME) document.documentElement.removeAttribute("data-theme");
-    else document.documentElement.setAttribute("data-theme", id);
+  function applyTheme(id: typeof theme) {
+    setTheme(id);
     if (!customEnabled) setColors(currentColors());
   }
 
@@ -87,19 +82,17 @@ export function ThemePicker() {
   }
 
   function resetAll() {
-    localStorage.removeItem(THEME_STORAGE_KEY);
+    setTheme(DEFAULT_THEME);
     localStorage.removeItem(CUSTOM_COLORS_STORAGE_KEY);
-    document.documentElement.removeAttribute("data-theme");
     document.documentElement.style.removeProperty("--accent");
     document.documentElement.style.removeProperty("--accent-ink");
     document.documentElement.style.removeProperty("--accent2");
     document.documentElement.style.removeProperty("--accent3");
-    setThemeState(DEFAULT_THEME);
     setCustomEnabled(false);
     setColors(currentColors());
   }
 
-  if (!mounted) return null;
+  if (!mounted || !themeMounted) return null;
 
   return (
     <div className="flex flex-col gap-6">

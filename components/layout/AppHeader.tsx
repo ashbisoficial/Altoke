@@ -4,6 +4,7 @@ import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { GlobalSearch } from "@/components/layout/GlobalSearch";
 import { LogoutButton } from "@/components/dashboard/LogoutButton";
 import { LogoMark } from "@/components/layout/Logo";
+import { ThemeQuickSwitcher } from "@/components/theme/ThemeQuickSwitcher";
 
 export function AppHeader() {
   return (
@@ -21,6 +22,7 @@ export function AppHeader() {
       </Link>
       <GlobalSearch />
       <div className="ml-auto flex shrink-0 items-center gap-1">
+        <ThemeQuickSwitcher />
         <NotificationBell />
         <Link
           href="/account"
