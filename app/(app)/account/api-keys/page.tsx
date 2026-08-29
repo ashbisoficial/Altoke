@@ -7,6 +7,7 @@ import { ApiKeysManager } from "@/components/account/ApiKeysManager";
 
 const ENDPOINTS = [
   { method: "GET", path: "/api/v1/projects", desc: "Lista tus proyectos." },
+  { method: "GET", path: "/api/v1/projects/:id/issue-types", desc: "Lista los tipos de incidencia del proyecto." },
   { method: "GET", path: "/api/v1/projects/:id/issues", desc: "Lista las incidencias de un proyecto." },
   { method: "POST", path: "/api/v1/projects/:id/issues", desc: "Crea una incidencia." },
   { method: "GET", path: "/api/v1/issues/:id", desc: "Trae una incidencia." },
@@ -57,7 +58,7 @@ export default async function ApiKeysPage() {
         <p className="mt-1 text-sm text-ink/60">
           Mandá la llave en el header <code className="text-xs">Authorization</code> de cada pedido:
         </p>
-        <pre className="mt-2 overflow-x-auto rounded-lg bg-ink p-3 text-xs text-white">
+        <pre className="mt-2 overflow-x-auto rounded-lg bg-neutral-900 p-3 text-xs text-neutral-50">
           {`curl https://altoke-one.vercel.app/api/v1/projects \\
   -H "Authorization: Bearer altk_tu_llave_aca"`}
         </pre>
