@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { prisma } from "@/lib/prisma";
+import { FieldValue } from "firebase-admin/firestore";
+import { adminDb } from "@/lib/firebase/admin";
 import { getSessionUser } from "@/lib/auth";
 import { errorResponse, forbidden, notFound, unauthorized, zodErrorResponse } from "@/lib/http";
 import { hasProjectPermission } from "@/lib/permissions";
@@ -25,8 +26,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   if (!user) return unauthorized();
   const { id } = await params;
 
-  const issue = await prisma.issue.findUnique({ where: { id } });
-  if (!issue) return notFound("Incidencia");
+  const issueSnap = await adminDb.doc(`issues/${id}`).get();
+  if (!issueSnap.exists) return notFound("Incidencia");
+  const issue = issueSnap.data()!;
   if (!(await hasProjectPermission(user.id, issue.projectId, "issue.edit"))) return forbidden();
 
   const parsed = createLinkSchema.safeParse(await request.json().catch(() => null));
@@ -35,16 +37,33 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
   if (targetId === id) return errorResponse(400, "Una incidencia no puede enlazarse a sí misma");
 
-  const target = await prisma.issue.findUnique({ where: { id: targetId } });
-  if (!target) return notFound("Incidencia enlazada");
+  const targetSnap = await adminDb.doc(`issues/${targetId}`).get();
+  if (!targetSnap.exists) return notFound("Incidencia enlazada");
+  const target = targetSnap.data()!;
   if (target.projectId !== issue.projectId) {
     return errorResponse(400, "Solo puedes enlazar incidencias del mismo proyecto");
   }
 
-  const link = await prisma.issueLink.create({
-    data: { sourceId: id, targetId, type },
-    include: { target: { select: { id: true, key: true, title: true } } },
+  const existing = await adminDb
+    .collection("issueLinks")
+    .where("sourceId", "==", id)
+    .where("targetId", "==", targetId)
+    .where("type", "==", type)
+    .limit(1)
+    .get();
+  if (!existing.empty) return errorResponse(409, "Ese enlace ya existe");
+
+  const ref = await adminDb.collection("issueLinks").add({
+    sourceId: id,
+    targetId,
+    type,
+    source: { id, key: issue.key, title: issue.title },
+    target: { id: targetId, key: target.key, title: target.title },
+    createdAt: FieldValue.serverTimestamp(),
   });
 
-  return NextResponse.json({ link }, { status: 201 });
+  return NextResponse.json(
+    { link: { id: ref.id, type, target: { id: targetId, key: target.key, title: target.title } } },
+    { status: 201 },
+  );
 }

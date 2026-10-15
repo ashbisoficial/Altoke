@@ -52,6 +52,30 @@ export async function isOrgMember(userId: string, organizationId: string): Promi
   return snap.exists;
 }
 
+/**
+ * All project ids a user can see: projects they're a direct member of, plus
+ * every project in an organization they belong to (org membership implies
+ * access to all its projects, same fallback hasProjectPermission uses).
+ * Used for cross-project views (search, the public API's project list).
+ */
+export async function getAccessibleProjectIds(userId: string): Promise<string[]> {
+  const [projectMemberships, orgMemberships] = await Promise.all([
+    adminDb.collectionGroup("members").where("userId", "==", userId).get(),
+    adminDb.collectionGroup("memberships").where("userId", "==", userId).get(),
+  ]);
+
+  const orgIds = orgMemberships.docs.map((d) => d.ref.parent.parent?.id).filter((v): v is string => Boolean(v));
+  const directProjectIds = projectMemberships.docs
+    .map((d) => d.ref.parent.parent?.id)
+    .filter((v): v is string => Boolean(v));
+
+  const orgProjectSnaps = orgIds.length
+    ? await adminDb.collection("projects").where("organizationId", "in", orgIds.slice(0, 30)).get()
+    : null;
+
+  return [...new Set([...directProjectIds, ...(orgProjectSnaps?.docs.map((d) => d.id) ?? [])])];
+}
+
 export async function isProjectMember(userId: string, projectId: string): Promise<boolean> {
   const memberSnap = await adminDb.doc(`projects/${projectId}/members/${userId}`).get();
   if (memberSnap.exists) return true;

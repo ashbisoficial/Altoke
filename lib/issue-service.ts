@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { prisma } from "@/lib/prisma";
+import { FieldValue, Timestamp } from "firebase-admin/firestore";
+import { adminDb } from "@/lib/firebase/admin";
 import { notify } from "@/lib/notifications";
 import { PRIORITY_LABEL } from "@/lib/priority";
 
@@ -7,6 +8,12 @@ import { PRIORITY_LABEL } from "@/lib/priority";
  * Shared issue create/update logic used by both the session-based routes
  * (app/api/issues/**) and the public API (app/api/v1/**), so the two never
  * drift out of sync on validation, workflow rules, or activity logging.
+ *
+ * issueType/status/assignee/reporter are denormalized onto the issue
+ * document (no joins in Firestore) — issueType and reporter are a
+ * point-in-time snapshot taken at creation, status is refreshed on every
+ * transition (see transitionIssue below), and assignee is refreshed
+ * whenever it changes here.
  */
 export class ServiceError extends Error {
   status: number;
@@ -14,6 +21,12 @@ export class ServiceError extends Error {
     super(message);
     this.status = status;
   }
+}
+
+type UserSnapshot = { id: string; name: string | null; email: string; avatarUrl: string | null };
+
+function snapshotUser(id: string, data: FirebaseFirestore.DocumentData): UserSnapshot {
+  return { id, name: data.name ?? null, email: data.email, avatarUrl: data.avatarUrl ?? null };
 }
 
 export const createIssueInput = z.object({
@@ -30,47 +43,62 @@ export const createIssueInput = z.object({
 });
 
 export async function createIssue(reporterId: string, data: z.infer<typeof createIssueInput>) {
-  const project = await prisma.project.findUnique({
-    where: { id: data.projectId },
-    include: { workflow: { include: { statuses: true } } },
-  });
-  if (!project) throw new ServiceError(404, "Proyecto no encontrado");
+  const projectRef = adminDb.doc(`projects/${data.projectId}`);
+  const [projectSnap, issueTypeSnap, reporterSnap, assigneeSnap] = await Promise.all([
+    projectRef.get(),
+    adminDb.doc(`projects/${data.projectId}/issueTypes/${data.issueTypeId}`).get(),
+    adminDb.doc(`users/${reporterId}`).get(),
+    data.assigneeId ? adminDb.doc(`users/${data.assigneeId}`).get() : Promise.resolve(null),
+  ]);
+  if (!projectSnap.exists) throw new ServiceError(404, "Proyecto no encontrado");
+  if (!issueTypeSnap.exists) throw new ServiceError(400, "Tipo de incidencia inválido para este proyecto");
+  const project = projectSnap.data()!;
+  const issueType = issueTypeSnap.data()!;
 
-  const issueType = await prisma.issueType.findFirst({
-    where: { id: data.issueTypeId, projectId: data.projectId },
-  });
-  if (!issueType) throw new ServiceError(400, "Tipo de incidencia inválido para este proyecto");
-
-  const initialStatus = project.workflow.statuses.find((s) => s.isInitial) ?? project.workflow.statuses[0];
+  const statuses = (project.workflow?.statuses ?? []) as { id: string; isInitial?: boolean }[];
+  const initialStatus = statuses.find((s) => s.isInitial) ?? statuses[0];
   if (!initialStatus) throw new ServiceError(500, "El proyecto no tiene un flujo de trabajo válido");
 
-  return prisma.$transaction(async (tx) => {
-    const updatedProject = await tx.project.update({
-      where: { id: data.projectId },
-      data: { issueCounter: { increment: 1 } },
-    });
-    const number = updatedProject.issueCounter;
+  const issueRef = adminDb.collection("issues").doc();
 
-    return tx.issue.create({
-      data: {
-        projectId: data.projectId,
-        number,
-        key: `${updatedProject.key}-${number}`,
-        issueTypeId: data.issueTypeId,
-        title: data.title,
-        description: data.description,
-        priority: data.priority ?? "MEDIUM",
-        assigneeId: data.assigneeId,
-        parentId: data.parentId,
-        sprintId: data.sprintId,
-        storyPoints: data.storyPoints,
-        dueDate: data.dueDate ? new Date(data.dueDate) : undefined,
-        statusId: initialStatus.id,
-        reporterId,
-      },
-      include: { issueType: true, status: true, assignee: true, reporter: true },
+  await adminDb.runTransaction(async (tx) => {
+    const freshProject = await tx.get(projectRef);
+    const number = (freshProject.data()!.issueCounter ?? 0) + 1;
+    tx.update(projectRef, { issueCounter: number });
+    tx.set(issueRef, {
+      organizationId: project.organizationId,
+      projectId: data.projectId,
+      number,
+      key: `${project.key}-${number}`,
+      issueTypeId: data.issueTypeId,
+      issueType: { id: data.issueTypeId, name: issueType.name, color: issueType.color ?? null },
+      title: data.title,
+      description: data.description ?? null,
+      priority: data.priority ?? "MEDIUM",
+      statusId: initialStatus.id,
+      status: initialStatus,
+      assigneeId: data.assigneeId ?? null,
+      assignee:
+        data.assigneeId && assigneeSnap?.exists ? snapshotUser(data.assigneeId, assigneeSnap.data()!) : null,
+      reporterId,
+      reporter: snapshotUser(reporterId, reporterSnap.data() ?? {}),
+      parentId: data.parentId ?? null,
+      sprintId: data.sprintId ?? null,
+      storyPoints: data.storyPoints ?? null,
+      dueDate: data.dueDate ? Timestamp.fromDate(new Date(data.dueDate)) : null,
+      labels: [],
+      childCount: 0,
+      createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
     });
   });
+
+  if (data.parentId) {
+    adminDb.doc(`issues/${data.parentId}`).update({ childCount: FieldValue.increment(1) }).catch(() => {});
+  }
+
+  const created = await issueRef.get();
+  return { id: issueRef.id, ...created.data() };
 }
 
 export const updateIssueInput = z.object({
@@ -88,34 +116,51 @@ export async function updateIssue(
   issueId: string,
   data: z.infer<typeof updateIssueInput>,
 ) {
-  const existing = await prisma.issue.findUnique({
-    where: { id: issueId },
-    include: {
-      assignee: { select: { name: true, email: true } },
-      sprint: { select: { name: true } },
-    },
-  });
-  if (!existing) throw new ServiceError(404, "Incidencia no encontrada");
+  const ref = adminDb.doc(`issues/${issueId}`);
+  const snap = await ref.get();
+  if (!snap.exists) throw new ServiceError(404, "Incidencia no encontrada");
+  const existing = snap.data()!;
 
-  const { dueDate, ...rest } = data;
+  const { dueDate, assigneeId, sprintId, ...rest } = data;
+  const updates: Record<string, unknown> = { ...rest, updatedAt: FieldValue.serverTimestamp() };
 
-  const issue = await prisma.issue.update({
-    where: { id: issueId },
-    data: {
-      ...rest,
-      ...(dueDate !== undefined ? { dueDate: dueDate ? new Date(dueDate) : null } : {}),
-    },
-    include: { issueType: true, status: true, assignee: true, reporter: true, sprint: true },
-  });
+  let newAssignee: UserSnapshot | null = existing.assignee ?? null;
+  if (assigneeId !== undefined) {
+    updates.assigneeId = assigneeId;
+    newAssignee = null;
+    if (assigneeId) {
+      const uSnap = await adminDb.doc(`users/${assigneeId}`).get();
+      if (uSnap.exists) newAssignee = snapshotUser(assigneeId, uSnap.data()!);
+    }
+    updates.assignee = newAssignee;
+  }
 
-  if (rest.assigneeId && rest.assigneeId !== existing.assigneeId) {
+  let existingSprintName: string | null = null;
+  let newSprintName: string | null = null;
+  if (sprintId !== undefined) {
+    updates.sprintId = sprintId;
+    const [existingSprintSnap, newSprintSnap] = await Promise.all([
+      existing.sprintId ? adminDb.doc(`projects/${existing.projectId}/sprints/${existing.sprintId}`).get() : null,
+      sprintId ? adminDb.doc(`projects/${existing.projectId}/sprints/${sprintId}`).get() : null,
+    ]);
+    existingSprintName = existingSprintSnap?.exists ? existingSprintSnap.data()!.name : null;
+    newSprintName = newSprintSnap?.exists ? newSprintSnap.data()!.name : null;
+  }
+
+  if (dueDate !== undefined) {
+    updates.dueDate = dueDate ? Timestamp.fromDate(new Date(dueDate)) : null;
+  }
+
+  await ref.update(updates);
+
+  if (assigneeId && assigneeId !== existing.assigneeId) {
     await notify({
-      userId: rest.assigneeId,
+      userId: assigneeId,
       actorId,
       type: "ISSUE_ASSIGNED",
-      title: `Te asignaron ${issue.key}`,
-      body: issue.title,
-      link: `/issues/${issue.id}`,
+      title: `Te asignaron ${existing.key}`,
+      body: existing.title,
+      link: `/issues/${issueId}`,
     });
   }
 
@@ -123,29 +168,39 @@ export async function updateIssue(
   if (rest.priority && rest.priority !== existing.priority) {
     activities.push({
       field: "priority",
-      fromLabel: PRIORITY_LABEL[existing.priority],
-      toLabel: PRIORITY_LABEL[rest.priority],
+      fromLabel: PRIORITY_LABEL[existing.priority as keyof typeof PRIORITY_LABEL],
+      toLabel: PRIORITY_LABEL[rest.priority as keyof typeof PRIORITY_LABEL],
     });
   }
-  if (rest.assigneeId !== undefined && rest.assigneeId !== existing.assigneeId) {
+  if (assigneeId !== undefined && assigneeId !== existing.assigneeId) {
     activities.push({
       field: "assignee",
       fromLabel: existing.assignee ? (existing.assignee.name ?? existing.assignee.email) : "Sin asignar",
-      toLabel: issue.assignee ? (issue.assignee.name ?? issue.assignee.email) : "Sin asignar",
+      toLabel: newAssignee ? (newAssignee.name ?? newAssignee.email) : "Sin asignar",
     });
   }
-  if (rest.sprintId !== undefined && rest.sprintId !== existing.sprintId) {
+  if (sprintId !== undefined && sprintId !== existing.sprintId) {
     activities.push({
       field: "sprint",
-      fromLabel: existing.sprint?.name ?? "Backlog",
-      toLabel: issue.sprint?.name ?? "Backlog",
+      fromLabel: existingSprintName ?? "Backlog",
+      toLabel: newSprintName ?? "Backlog",
     });
   }
   if (activities.length > 0) {
-    await prisma.issueActivity.createMany({
-      data: activities.map((a) => ({ issueId, actorId, ...a })),
-    });
+    const actorSnap = await adminDb.doc(`users/${actorId}`).get();
+    const actor = actorSnap.exists ? snapshotUser(actorId, actorSnap.data()!) : null;
+    const batch = adminDb.batch();
+    for (const a of activities) {
+      batch.set(adminDb.collection(`issues/${issueId}/activity`).doc(), {
+        ...a,
+        actorId,
+        actor,
+        createdAt: FieldValue.serverTimestamp(),
+      });
+    }
+    await batch.commit();
   }
 
-  return issue;
+  const updated = await ref.get();
+  return { id: issueId, ...updated.data() };
 }

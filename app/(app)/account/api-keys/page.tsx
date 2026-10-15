@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { prisma } from "@/lib/prisma";
+import { adminDb } from "@/lib/firebase/admin";
+import { tsToISO } from "@/lib/firebase/firestore-utils";
 import { getSessionUser } from "@/lib/auth";
 import { ApiKeysManager } from "@/components/account/ApiKeysManager";
 
@@ -18,17 +19,17 @@ export default async function ApiKeysPage() {
   const user = await getSessionUser();
   if (!user) redirect("/login");
 
-  const apiKeys = await prisma.apiKey.findMany({
-    where: { userId: user.id },
-    select: {
-      id: true,
-      name: true,
-      keyPrefix: true,
-      createdAt: true,
-      lastUsedAt: true,
-      revokedAt: true,
-    },
-    orderBy: { createdAt: "desc" },
+  const snap = await adminDb.collection("apiKeys").where("userId", "==", user.id).orderBy("createdAt", "desc").get();
+  const apiKeys = snap.docs.map((d) => {
+    const data = d.data();
+    return {
+      id: d.id,
+      name: data.name as string,
+      keyPrefix: data.keyPrefix as string,
+      createdAt: tsToISO(data.createdAt)!,
+      lastUsedAt: tsToISO(data.lastUsedAt),
+      revokedAt: tsToISO(data.revokedAt),
+    };
   });
 
   return (
@@ -44,14 +45,7 @@ export default async function ApiKeysPage() {
         <h1 className="font-heading text-2xl font-semibold">Llaves de API</h1>
       </header>
 
-      <ApiKeysManager
-        initialKeys={apiKeys.map((k) => ({
-          ...k,
-          createdAt: k.createdAt.toISOString(),
-          lastUsedAt: k.lastUsedAt?.toISOString() ?? null,
-          revokedAt: k.revokedAt?.toISOString() ?? null,
-        }))}
-      />
+      <ApiKeysManager initialKeys={apiKeys} />
 
       <section className="mt-8 rounded-xl border border-border bg-surface p-4">
         <h2 className="font-heading text-sm font-semibold">Cómo usarla</h2>

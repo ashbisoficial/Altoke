@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { adminDb } from "@/lib/firebase/admin";
 import { getSessionUser } from "@/lib/auth";
 import { forbidden, notFound, unauthorized } from "@/lib/http";
 import { hasProjectPermission } from "@/lib/permissions";
@@ -9,13 +9,15 @@ export async function DELETE(_request: NextRequest, { params }: { params: Promis
   if (!user) return unauthorized();
   const { id } = await params;
 
-  const link = await prisma.issueLink.findUnique({
-    where: { id },
-    include: { source: { select: { projectId: true } } },
-  });
-  if (!link) return notFound("Enlace");
-  if (!(await hasProjectPermission(user.id, link.source.projectId, "issue.edit"))) return forbidden();
+  const ref = adminDb.doc(`issueLinks/${id}`);
+  const snap = await ref.get();
+  if (!snap.exists) return notFound("Enlace");
+  const link = snap.data()!;
 
-  await prisma.issueLink.delete({ where: { id } });
+  const sourceSnap = await adminDb.doc(`issues/${link.sourceId}`).get();
+  const projectId = sourceSnap.data()?.projectId;
+  if (!projectId || !(await hasProjectPermission(user.id, projectId, "issue.edit"))) return forbidden();
+
+  await ref.delete();
   return NextResponse.json({ ok: true });
 }

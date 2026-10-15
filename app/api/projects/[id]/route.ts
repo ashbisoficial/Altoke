@@ -23,7 +23,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     await Promise.all([
       projectRef.get(),
       projectRef.collection("issueTypes").get(),
-      projectRef.collection("labels").get(),
+      adminDb.collection("labels").where("projectId", "==", id).get(),
       projectRef.collection("components").get(),
       projectRef.collection("boards").get(),
       projectRef.collection("sprints").orderBy("createdAt", "desc").get(),

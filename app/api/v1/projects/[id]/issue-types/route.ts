@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { adminDb } from "@/lib/firebase/admin";
 import { getApiUser } from "@/lib/api-auth";
 import { forbidden, unauthorized } from "@/lib/http";
 import { isProjectMember } from "@/lib/permissions";
@@ -11,9 +11,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
   if (!(await isProjectMember(user.id, projectId))) return forbidden();
 
-  const issueTypes = await prisma.issueType.findMany({
-    where: { projectId },
-    select: { id: true, name: true, color: true, isSubtask: true },
+  const snap = await adminDb.collection(`projects/${projectId}/issueTypes`).get();
+  const issueTypes = snap.docs.map((d) => {
+    const data = d.data();
+    return { id: d.id, name: data.name, color: data.color ?? null, isSubtask: Boolean(data.isSubtask) };
   });
 
   return NextResponse.json({ issueTypes });

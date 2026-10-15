@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { prisma } from "@/lib/prisma";
+import { FieldValue } from "firebase-admin/firestore";
+import { adminDb } from "@/lib/firebase/admin";
 import { getSessionUser } from "@/lib/auth";
 import { errorResponse, forbidden, notFound, unauthorized, zodErrorResponse } from "@/lib/http";
 import { hasProjectPermission } from "@/lib/permissions";
@@ -12,26 +13,28 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   if (!user) return unauthorized();
   const { id } = await params;
 
-  const issue = await prisma.issue.findUnique({ where: { id } });
-  if (!issue) return notFound("Incidencia");
+  const issueRef = adminDb.doc(`issues/${id}`);
+  const issueSnap = await issueRef.get();
+  if (!issueSnap.exists) return notFound("Incidencia");
+  const issue = issueSnap.data()!;
   if (!(await hasProjectPermission(user.id, issue.projectId, "issue.edit"))) return forbidden();
 
   const parsed = attachLabelSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return zodErrorResponse(parsed.error);
   const { labelId } = parsed.data;
 
-  const label = await prisma.label.findUnique({ where: { id: labelId } });
-  if (!label) return notFound("Etiqueta");
+  const labelSnap = await adminDb.doc(`labels/${labelId}`).get();
+  if (!labelSnap.exists) return notFound("Etiqueta");
+  const label = labelSnap.data()!;
   if (label.projectId !== issue.projectId) {
     return errorResponse(400, "La etiqueta no pertenece a este proyecto");
   }
 
-  const issueLabel = await prisma.issueLabel.upsert({
-    where: { issueId_labelId: { issueId: id, labelId } },
-    update: {},
-    create: { issueId: id, labelId },
-    include: { label: true },
-  });
+  const entry = { label: { id: labelId, name: label.name, color: label.color } };
+  const already = ((issue.labels ?? []) as { label: { id: string } }[]).some((l) => l.label.id === labelId);
+  if (!already) {
+    await issueRef.update({ labels: FieldValue.arrayUnion(entry), updatedAt: FieldValue.serverTimestamp() });
+  }
 
-  return NextResponse.json({ issueLabel }, { status: 201 });
+  return NextResponse.json({ issueLabel: entry }, { status: 201 });
 }
