@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
     createdAt: FieldValue.serverTimestamp(),
   });
   await batch.commit();
-  await syncUserClaims(user.id).catch(() => {});
+  await syncUserClaims(user.id).catch((e) => console.error("syncUserClaims failed", e));
 
   return NextResponse.json({ organization: { id: orgRef.id, name, slug } }, { status: 201 });
 }

@@ -139,7 +139,7 @@ export async function POST(request: NextRequest) {
     createdAt: FieldValue.serverTimestamp(),
   });
   await batch.commit();
-  await syncUserClaims(user.id).catch(() => {});
+  await syncUserClaims(user.id).catch((e) => console.error("syncUserClaims failed", e));
 
   return NextResponse.json(
     { project: { id: projectRef.id, organizationId, name, key, description: description ?? null } },

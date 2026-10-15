@@ -40,7 +40,7 @@ export async function POST(_request: NextRequest, { params }: { params: Promise<
 
     tx.update(invitationRef, { status: "ACCEPTED", acceptedAt: FieldValue.serverTimestamp() });
   });
-  await syncUserClaims(user.id).catch(() => {});
+  await syncUserClaims(user.id).catch((e) => console.error("syncUserClaims failed", e));
 
   return NextResponse.json({
     invitation: { id: token, status: "ACCEPTED" },

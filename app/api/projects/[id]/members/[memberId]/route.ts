@@ -29,7 +29,7 @@ export async function PATCH(
   if (!parsed.success) return zodErrorResponse(parsed.error);
 
   await ref.update({ role: parsed.data.roleId });
-  await syncUserClaims(memberId).catch(() => {});
+  await syncUserClaims(memberId).catch((e) => console.error("syncUserClaims failed", e));
 
   const userSnap = await adminDb.doc(`users/${memberId}`).get();
   const u = userSnap.data();
@@ -57,6 +57,6 @@ export async function DELETE(
   if (!existing.exists) return notFound("Miembro");
 
   await ref.delete();
-  await syncUserClaims(memberId).catch(() => {});
+  await syncUserClaims(memberId).catch((e) => console.error("syncUserClaims failed", e));
   return NextResponse.json({ ok: true });
 }

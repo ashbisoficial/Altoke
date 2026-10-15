@@ -49,7 +49,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   if (existing.exists) return errorResponse(409, "Ese usuario ya es miembro del proyecto");
 
   await memberRef.set({ userId: targetUserId, role, createdAt: FieldValue.serverTimestamp() });
-  await syncUserClaims(targetUserId).catch(() => {});
+  await syncUserClaims(targetUserId).catch((e) => console.error("syncUserClaims failed", e));
 
   await notify({
     userId: targetUserId,
