@@ -91,7 +91,10 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
   await ref.update(parsed.data);
   const updated = await ref.get();
-  return NextResponse.json({ project: { id: updated.id, ...updated.data() } });
+  const data = updated.data()!;
+  return NextResponse.json({
+    project: { id: updated.id, ...data, createdAt: tsToISO(data.createdAt) },
+  });
 }
 
 export async function DELETE(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
