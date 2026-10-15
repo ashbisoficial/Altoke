@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { FieldValue } from "firebase-admin/firestore";
+import { adminDb } from "@/lib/firebase/admin";
+import { syncUserClaims } from "@/lib/firebase/claims";
 import { getSessionUser } from "@/lib/auth";
 import { errorResponse, notFound, unauthorized } from "@/lib/http";
 
@@ -8,35 +10,40 @@ export async function POST(_request: NextRequest, { params }: { params: Promise<
   if (!user) return unauthorized();
   const { token } = await params;
 
-  const invitation = await prisma.invitation.findUnique({ where: { token } });
-  if (!invitation) return notFound("Invitación");
+  const invitationRef = adminDb.doc(`invitations/${token}`);
+  const snap = await invitationRef.get();
+  if (!snap.exists) return notFound("Invitación");
+  const invitation = snap.data()!;
+
   if (invitation.status === "REVOKED") return errorResponse(410, "Esta invitación fue cancelada");
   if (invitation.status === "ACCEPTED") return errorResponse(410, "Esta invitación ya fue usada");
-  if (invitation.expiresAt < new Date()) return errorResponse(410, "Esta invitación ya expiró");
+  if (invitation.expiresAt.toDate() < new Date()) return errorResponse(410, "Esta invitación ya expiró");
 
-  const result = await prisma.$transaction(async (tx) => {
-    await tx.membership.upsert({
-      where: { userId_organizationId: { userId: user.id, organizationId: invitation.organizationId } },
-      create: { userId: user.id, organizationId: invitation.organizationId, roleId: invitation.orgRoleId },
-      update: {},
-    });
-
-    if (invitation.projectId && invitation.projectRoleId) {
-      await tx.projectMember.upsert({
-        where: { userId_projectId: { userId: user.id, projectId: invitation.projectId } },
-        create: { userId: user.id, projectId: invitation.projectId, roleId: invitation.projectRoleId },
-        update: {},
-      });
+  await adminDb.runTransaction(async (tx) => {
+    const orgMembershipRef = adminDb.doc(`organizations/${invitation.organizationId}/memberships/${user.id}`);
+    const orgMembershipSnap = await tx.get(orgMembershipRef);
+    if (!orgMembershipSnap.exists) {
+      tx.set(orgMembershipRef, { userId: user.id, role: invitation.orgRoleId, createdAt: FieldValue.serverTimestamp() });
     }
 
-    return tx.invitation.update({
-      where: { id: invitation.id },
-      data: { status: "ACCEPTED", acceptedAt: new Date() },
-    });
+    if (invitation.projectId && invitation.projectRoleId) {
+      const projectMemberRef = adminDb.doc(`projects/${invitation.projectId}/members/${user.id}`);
+      const projectMemberSnap = await tx.get(projectMemberRef);
+      if (!projectMemberSnap.exists) {
+        tx.set(projectMemberRef, {
+          userId: user.id,
+          role: invitation.projectRoleId,
+          createdAt: FieldValue.serverTimestamp(),
+        });
+      }
+    }
+
+    tx.update(invitationRef, { status: "ACCEPTED", acceptedAt: FieldValue.serverTimestamp() });
   });
+  await syncUserClaims(user.id).catch(() => {});
 
   return NextResponse.json({
-    invitation: result,
+    invitation: { id: token, status: "ACCEPTED" },
     redirectTo: invitation.projectId ? `/board?projectId=${invitation.projectId}` : "/dashboard",
   });
 }

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { adminDb } from "@/lib/firebase/admin";
 import { getSessionUser } from "@/lib/auth";
 import { forbidden, notFound, unauthorized } from "@/lib/http";
 import { hasOrgPermission } from "@/lib/permissions";
@@ -14,11 +14,10 @@ export async function DELETE(
 
   if (!(await hasOrgPermission(user.id, organizationId, "member.manage"))) return forbidden();
 
-  const invitation = await prisma.invitation.findFirst({
-    where: { id: invitationId, organizationId },
-  });
-  if (!invitation) return notFound("Invitación");
+  const ref = adminDb.doc(`invitations/${invitationId}`);
+  const snap = await ref.get();
+  if (!snap.exists || snap.data()!.organizationId !== organizationId) return notFound("Invitación");
 
-  await prisma.invitation.update({ where: { id: invitationId }, data: { status: "REVOKED" } });
+  await ref.update({ status: "REVOKED" });
   return NextResponse.json({ ok: true });
 }

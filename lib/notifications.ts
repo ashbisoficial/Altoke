@@ -1,5 +1,7 @@
-import { prisma } from "@/lib/prisma";
-import type { NotificationType } from "@prisma/client";
+import { FieldValue } from "firebase-admin/firestore";
+import { adminDb } from "@/lib/firebase/admin";
+
+export type NotificationType = "ISSUE_ASSIGNED" | "ISSUE_COMMENTED" | "PROJECT_MEMBER_ADDED" | "ORG_INVITATION";
 
 /** Creates an in-app notification. Silently skips notifying the actor themselves. */
 export async function notify({
@@ -18,5 +20,13 @@ export async function notify({
   link?: string;
 }) {
   if (actorId && actorId === userId) return;
-  await prisma.notification.create({ data: { userId, type, title, body, link } });
+  await adminDb.collection("notifications").add({
+    userId,
+    type,
+    title,
+    body: body ?? null,
+    link: link ?? null,
+    read: false,
+    createdAt: FieldValue.serverTimestamp(),
+  });
 }

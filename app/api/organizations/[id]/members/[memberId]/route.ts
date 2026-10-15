@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { prisma } from "@/lib/prisma";
+import { adminDb } from "@/lib/firebase/admin";
+import { syncUserClaims } from "@/lib/firebase/claims";
 import { getSessionUser } from "@/lib/auth";
 import { errorResponse, forbidden, notFound, unauthorized, zodErrorResponse } from "@/lib/http";
 import { hasOrgPermission } from "@/lib/permissions";
+import { DEFAULT_ROLES } from "@/lib/seed-defaults";
 
 const updateMembershipSchema = z.object({
-  roleId: z.string().min(1),
+  roleId: z.enum(Object.keys(DEFAULT_ROLES) as [string, ...string[]]),
 });
 
 export async function PATCH(
@@ -19,24 +21,25 @@ export async function PATCH(
 
   if (!(await hasOrgPermission(user.id, organizationId, "member.manage"))) return forbidden();
 
-  const membership = await prisma.membership.findFirst({
-    where: { id: memberId, organizationId },
-  });
-  if (!membership) return notFound("Miembro");
+  const ref = adminDb.doc(`organizations/${organizationId}/memberships/${memberId}`);
+  const existing = await ref.get();
+  if (!existing.exists) return notFound("Miembro");
 
   const parsed = updateMembershipSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return zodErrorResponse(parsed.error);
 
-  const role = await prisma.role.findFirst({ where: { id: parsed.data.roleId, organizationId } });
-  if (!role) return errorResponse(400, "Rol inválido para esta organización");
+  await ref.update({ role: parsed.data.roleId });
+  await syncUserClaims(memberId).catch(() => {});
 
-  const updated = await prisma.membership.update({
-    where: { id: memberId },
-    data: { roleId: role.id },
-    include: { user: { select: { id: true, name: true, email: true, avatarUrl: true } }, role: true },
+  const userSnap = await adminDb.doc(`users/${memberId}`).get();
+  const u = userSnap.data();
+  return NextResponse.json({
+    membership: {
+      id: memberId,
+      role: { id: parsed.data.roleId, name: parsed.data.roleId },
+      user: { id: memberId, name: u?.name ?? null, email: u?.email ?? "", avatarUrl: u?.avatarUrl ?? null },
+    },
   });
-
-  return NextResponse.json({ membership: updated });
 }
 
 export async function DELETE(
@@ -49,19 +52,22 @@ export async function DELETE(
 
   if (!(await hasOrgPermission(user.id, organizationId, "member.manage"))) return forbidden();
 
-  const membership = await prisma.membership.findFirst({ where: { id: memberId, organizationId } });
-  if (!membership) return notFound("Miembro");
+  const ref = adminDb.doc(`organizations/${organizationId}/memberships/${memberId}`);
+  const existing = await ref.get();
+  if (!existing.exists) return notFound("Miembro");
 
-  const adminCount = await prisma.membership.count({
-    where: { organizationId, role: { name: "Admin" } },
-  });
-  if (membership.roleId && adminCount <= 1) {
-    const role = await prisma.role.findUnique({ where: { id: membership.roleId } });
-    if (role?.name === "Admin") {
+  if (existing.data()!.role === "Admin") {
+    const adminCount = await adminDb
+      .collection(`organizations/${organizationId}/memberships`)
+      .where("role", "==", "Admin")
+      .count()
+      .get();
+    if (adminCount.data().count <= 1) {
       return errorResponse(409, "No puedes quitar al último administrador de la organización");
     }
   }
 
-  await prisma.membership.delete({ where: { id: memberId } });
+  await ref.delete();
+  await syncUserClaims(memberId).catch(() => {});
   return NextResponse.json({ ok: true });
 }

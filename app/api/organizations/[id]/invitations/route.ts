@@ -1,20 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { prisma } from "@/lib/prisma";
+import { FieldValue, Timestamp } from "firebase-admin/firestore";
+import { adminDb } from "@/lib/firebase/admin";
 import { getSessionUser } from "@/lib/auth";
 import { errorResponse, forbidden, unauthorized, zodErrorResponse } from "@/lib/http";
 import { hasOrgPermission, isOrgMember } from "@/lib/permissions";
 import { notify } from "@/lib/notifications";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { sendInvitationEmail } from "@/lib/email";
+import { DEFAULT_ROLES } from "@/lib/seed-defaults";
 
 const INVITE_TTL_DAYS = 14;
+const roleEnum = z.enum(Object.keys(DEFAULT_ROLES) as [string, ...string[]]);
 
 const createInvitationSchema = z
   .object({
     email: z.string().trim().email(),
-    orgRoleId: z.string().min(1),
+    orgRoleId: roleEnum,
     projectId: z.string().min(1).optional(),
-    projectRoleId: z.string().min(1).optional(),
+    projectRoleId: roleEnum.optional(),
   })
   .refine((data) => !data.projectId === !data.projectRoleId, {
     message: "projectId y projectRoleId deben ir juntos",
@@ -27,15 +30,36 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
 
   if (!(await isOrgMember(user.id, organizationId))) return forbidden();
 
-  const invitations = await prisma.invitation.findMany({
-    where: { organizationId, status: "PENDING" },
-    include: {
-      orgRole: { select: { name: true } },
-      project: { select: { id: true, name: true } },
-      projectRole: { select: { name: true } },
-      invitedBy: { select: { name: true, email: true } },
-    },
-    orderBy: { createdAt: "desc" },
+  const snap = await adminDb
+    .collection("invitations")
+    .where("organizationId", "==", organizationId)
+    .where("status", "==", "PENDING")
+    .orderBy("createdAt", "desc")
+    .get();
+
+  const projectIds = [...new Set(snap.docs.map((d) => d.data().projectId).filter(Boolean))] as string[];
+  const inviterIds = [...new Set(snap.docs.map((d) => d.data().invitedById))] as string[];
+  const [projectSnaps, inviterSnaps] = await Promise.all([
+    projectIds.length ? adminDb.getAll(...projectIds.map((id) => adminDb.doc(`projects/${id}`))) : [],
+    inviterIds.length ? adminDb.getAll(...inviterIds.map((id) => adminDb.doc(`users/${id}`))) : [],
+  ]);
+  const projectById = new Map(projectSnaps.filter((s) => s.exists).map((s) => [s.id, s.data()!]));
+  const inviterById = new Map(inviterSnaps.filter((s) => s.exists).map((s) => [s.id, s.data()!]));
+
+  const invitations = snap.docs.map((d) => {
+    const data = d.data();
+    const inviter = inviterById.get(data.invitedById);
+    const project = data.projectId ? projectById.get(data.projectId) : undefined;
+    return {
+      id: d.id,
+      token: d.id,
+      email: data.email,
+      status: data.status,
+      emailSent: data.emailSent,
+      orgRole: { name: data.orgRoleId },
+      project: project ? { id: data.projectId, name: project.name } : null,
+      invitedBy: { name: inviter?.name ?? null, email: inviter?.email ?? "" },
+    };
   });
 
   return NextResponse.json({ invitations });
@@ -52,74 +76,75 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   if (!parsed.success) return zodErrorResponse(parsed.error);
   const { email, orgRoleId, projectId, projectRoleId } = parsed.data;
 
-  const [organization, orgRole] = await Promise.all([
-    prisma.organization.findUnique({ where: { id: organizationId } }),
-    prisma.role.findFirst({ where: { id: orgRoleId, organizationId } }),
-  ]);
-  if (!organization) return errorResponse(404, "Organización no encontrada");
-  if (!orgRole) return errorResponse(400, "Rol de organización inválido");
+  const orgSnap = await adminDb.doc(`organizations/${organizationId}`).get();
+  if (!orgSnap.exists) return errorResponse(404, "Organización no encontrada");
+  const organization = orgSnap.data()!;
 
-  if (projectId || projectRoleId) {
-    const project = await prisma.project.findFirst({ where: { id: projectId, organizationId } });
-    if (!project) return errorResponse(400, "El proyecto debe pertenecer a esta organización");
-    const projectRole = await prisma.role.findFirst({ where: { id: projectRoleId, organizationId } });
-    if (!projectRole) return errorResponse(400, "Rol de proyecto inválido");
+  if (projectId) {
+    const projectSnap = await adminDb.doc(`projects/${projectId}`).get();
+    if (!projectSnap.exists || projectSnap.data()!.organizationId !== organizationId) {
+      return errorResponse(400, "El proyecto debe pertenecer a esta organización");
+    }
   }
 
-  const existingUser = await prisma.user.findUnique({ where: { email } });
+  const existingUserSnap = await adminDb.collection("users").where("email", "==", email).limit(1).get();
+  const existingUser = existingUserSnap.empty
+    ? null
+    : { id: existingUserSnap.docs[0].id, ...existingUserSnap.docs[0].data() };
+
   if (existingUser) {
-    const alreadyMember = await prisma.membership.findUnique({
-      where: { userId_organizationId: { userId: existingUser.id, organizationId } },
-    });
-    if (alreadyMember) return errorResponse(409, "Ese usuario ya pertenece a la organización");
+    const alreadyMember = await adminDb.doc(`organizations/${organizationId}/memberships/${existingUser.id}`).get();
+    if (alreadyMember.exists) return errorResponse(409, "Ese usuario ya pertenece a la organización");
   }
 
-  const existingInvite = await prisma.invitation.findFirst({
-    where: { organizationId, email, status: "PENDING" },
-  });
-  if (existingInvite) return errorResponse(409, "Ya hay una invitación pendiente para ese correo");
+  const existingInvite = await adminDb
+    .collection("invitations")
+    .where("organizationId", "==", organizationId)
+    .where("email", "==", email)
+    .where("status", "==", "PENDING")
+    .limit(1)
+    .get();
+  if (!existingInvite.empty) return errorResponse(409, "Ya hay una invitación pendiente para ese correo");
 
-  const invitation = await prisma.invitation.create({
-    data: {
-      email,
-      organizationId,
-      orgRoleId,
-      projectId,
-      projectRoleId,
-      invitedById: user.id,
-      expiresAt: new Date(Date.now() + INVITE_TTL_DAYS * 24 * 60 * 60 * 1000),
-    },
+  const invitationRef = adminDb.collection("invitations").doc();
+  const expiresAt = Timestamp.fromMillis(Date.now() + INVITE_TTL_DAYS * 24 * 60 * 60 * 1000);
+  await invitationRef.set({
+    email,
+    organizationId,
+    orgRoleId,
+    projectId: projectId ?? null,
+    projectRoleId: projectRoleId ?? null,
+    invitedById: user.id,
+    status: "PENDING",
+    emailSent: false,
+    createdAt: FieldValue.serverTimestamp(),
+    expiresAt,
   });
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
-  const inviteLink = `${siteUrl}/invite/${invitation.token}`;
+  const inviteLink = `${siteUrl}/invite/${invitationRef.id}`;
 
   let emailed = false;
   if (!existingUser) {
-    try {
-      const admin = createAdminClient();
-      const { error } = await admin.auth.admin.inviteUserByEmail(email, {
-        redirectTo: `${siteUrl}/auth/callback?next=${encodeURIComponent(`/invite/${invitation.token}`)}`,
-      });
-      emailed = !error;
-    } catch {
-      emailed = false;
-    }
+    emailed = await sendInvitationEmail({ to: email, orgName: organization.name, inviteLink });
   } else {
-    // Existing Altoke user — no need for a Supabase auth email, they can log
-    // in as usual. Let them know inside the app instead.
     await notify({
       userId: existingUser.id,
       actorId: user.id,
       type: "ORG_INVITATION",
       title: `Te invitaron a ${organization.name}`,
-      link: `/invite/${invitation.token}`,
+      link: `/invite/${invitationRef.id}`,
     });
   }
 
-  if (emailed) {
-    await prisma.invitation.update({ where: { id: invitation.id }, data: { emailSent: true } });
-  }
+  if (emailed) await invitationRef.update({ emailSent: true });
 
-  return NextResponse.json({ invitation, inviteLink, emailed }, { status: 201 });
+  return NextResponse.json(
+    {
+      invitation: { id: invitationRef.id, token: invitationRef.id, email, status: "PENDING" },
+      inviteLink,
+      emailed,
+    },
+    { status: 201 },
+  );
 }
