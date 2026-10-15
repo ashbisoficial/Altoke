@@ -6,7 +6,7 @@ import { useState } from "react";
 import { ArrowLeft, X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { uploadAttachment } from "@/lib/supabase/storage";
+import { uploadAttachment } from "@/lib/firebase/storage";
 import { PRIORITY_LABEL, type Priority } from "@/lib/priority";
 
 type PersonRef = { id: string; name: string | null; email: string; avatarUrl: string | null };

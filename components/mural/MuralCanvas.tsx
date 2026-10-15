@@ -19,7 +19,7 @@ import {
   Type as TypeIcon,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { uploadMuralImage } from "@/lib/supabase/storage";
+import { uploadMuralImage } from "@/lib/firebase/storage";
 import { MuralElementView } from "./MuralElementView";
 import { STICKY_COLORS, type MuralElementData, type MuralElementType } from "./types";
 
