@@ -58,23 +58,50 @@ export default async function IssueDetailPage({
   const userById = new Map(memberUserSnaps.filter((s) => s.exists).map((s) => [s.id, s.data()!]));
 
   const dueDateIso = tsToISO(issueData.dueDate);
+  // Build only plain fields below — Firestore Timestamp instances
+  // (createdAt/updatedAt and friends) can't cross the server->client RSC
+  // boundary as props, so every doc read here is picked apart field by
+  // field rather than spread wholesale.
+  const issueFields = { ...issueData };
+  delete issueFields.createdAt;
+  delete issueFields.updatedAt;
 
   const issue = {
     id,
-    ...issueData,
+    ...issueFields,
     dueDate: dueDateIso ? new Date(dueDateIso) : null,
     comments: commentsSnap.docs.map((d) => {
-      const createdAtIso = tsToISO(d.data().createdAt);
-      return { id: d.id, ...d.data(), createdAt: createdAtIso ? new Date(createdAtIso) : new Date() };
+      const data = d.data();
+      const createdAtIso = tsToISO(data.createdAt);
+      return {
+        id: d.id,
+        body: data.body,
+        author: data.author,
+        createdAt: createdAtIso ? new Date(createdAtIso) : new Date(),
+      };
     }),
-    attachments: attachmentsSnap.docs.map((d) => ({ id: d.id, ...d.data() })),
-    children: childrenSnap.docs.map((d) => ({ id: d.id, ...d.data() })),
+    attachments: attachmentsSnap.docs.map((d) => {
+      const data = d.data();
+      return { id: d.id, fileName: data.fileName, fileUrl: data.fileUrl, fileSize: data.fileSize, uploaderId: data.uploaderId };
+    }),
+    children: childrenSnap.docs.map((d) => {
+      const data = d.data();
+      return { id: d.id, key: data.key, title: data.title, issueType: data.issueType, status: data.status };
+    }),
     parent: parentSnap?.exists ? { id: parentSnap.id, key: parentSnap.data()!.key, title: parentSnap.data()!.title } : null,
     linksFrom: linksFromSnap.docs.map((d) => ({ id: d.id, type: d.data().type, target: d.data().target })),
     linksTo: linksToSnap.docs.map((d) => ({ id: d.id, type: d.data().type, source: d.data().source })),
     activity: activitySnap.docs.map((d) => {
-      const createdAtIso = tsToISO(d.data().createdAt);
-      return { id: d.id, ...d.data(), createdAt: createdAtIso ? new Date(createdAtIso) : new Date() };
+      const data = d.data();
+      const createdAtIso = tsToISO(data.createdAt);
+      return {
+        id: d.id,
+        field: data.field,
+        fromLabel: data.fromLabel,
+        toLabel: data.toLabel,
+        actor: data.actor,
+        createdAt: createdAtIso ? new Date(createdAtIso) : new Date(),
+      };
     }),
   };
 
@@ -85,7 +112,7 @@ export default async function IssueDetailPage({
     key: projectSnap.data()?.key,
     name: projectSnap.data()?.name,
     issueTypes: issueTypesSnap.docs.map((d) => ({ id: d.id, ...d.data() })),
-    sprints: sprintsSnap.docs.map((d) => ({ id: d.id, ...d.data() })),
+    sprints: sprintsSnap.docs.map((d) => ({ id: d.id, name: d.data().name, status: d.data().status })),
     members: membersSnap.docs.map((d) => {
       const u = userById.get(d.id);
       return { user: { id: d.id, name: u?.name ?? null, email: u?.email ?? "", avatarUrl: u?.avatarUrl ?? null } };

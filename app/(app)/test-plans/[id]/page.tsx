@@ -45,11 +45,11 @@ export default async function TestPlanPage({ params }: { params: Promise<{ id: s
 
   const availableCases = allCasesSnap.docs
     .filter((d) => !linkedCaseIds.has(d.id))
+    .sort((a, b) => (b.data().createdAt?.toMillis?.() ?? 0) - (a.data().createdAt?.toMillis?.() ?? 0))
     .map((d) => {
       const data = d.data();
-      return { id: d.id, issue: { key: data.issue.key as string, title: data.issue.title as string }, createdAt: data.createdAt };
-    })
-    .sort((a, b) => (b.createdAt?.toMillis?.() ?? 0) - (a.createdAt?.toMillis?.() ?? 0));
+      return { id: d.id, issue: { key: data.issue.key as string, title: data.issue.title as string } };
+    });
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-6">

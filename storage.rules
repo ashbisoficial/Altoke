@@ -1,0 +1,18 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Attachments/mural uploads go straight from the browser to Storage
+    // (lib/firebase/storage.ts) — any signed-in user can write, matching
+    // the old Supabase "public bucket + authenticated insert" setup.
+    // Fine-grained per-project access is enforced by the app routes that
+    // persist the resulting URL, not by these rules.
+    match /attachments/{issueId}/{fileName} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+    match /mural/{boardId}/{fileName} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+  }
+}

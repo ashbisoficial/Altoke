@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { adminDb } from "@/lib/firebase/admin";
 import { getSessionUser } from "@/lib/auth";
 import { isProjectMember } from "@/lib/permissions";
 import { CreateMuralForm } from "@/components/mural/CreateMuralForm";
@@ -13,23 +13,33 @@ export default async function ProjectMuralsPage({ params }: { params: Promise<{ 
   const { id: projectId } = await params;
   if (!(await isProjectMember(user.id, projectId))) notFound();
 
-  const project = await prisma.project.findUnique({ where: { id: projectId } });
-  if (!project) notFound();
+  const projectSnap = await adminDb.doc(`projects/${projectId}`).get();
+  if (!projectSnap.exists) notFound();
+  const project = projectSnap.data()!;
 
-  const murals = await prisma.board.findMany({
-    where: { projectId, type: "MURAL" },
-    include: { _count: { select: { muralElements: true } } },
-    orderBy: { createdAt: "desc" },
-  });
+  const muralsSnap = await adminDb
+    .collection("boards")
+    .where("projectId", "==", projectId)
+    .where("type", "==", "MURAL")
+    .get();
+
+  const murals = await Promise.all(
+    muralsSnap.docs.map(async (d) => {
+      const count = await adminDb.collection("muralElements").where("boardId", "==", d.id).count().get();
+      const data = d.data();
+      return { id: d.id, name: data.name as string, createdAt: data.createdAt, elementCount: count.data().count };
+    }),
+  );
+  murals.sort((a, b) => (b.createdAt?.toMillis?.() ?? 0) - (a.createdAt?.toMillis?.() ?? 0));
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-6">
       <header className="mb-6 flex flex-col gap-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h1 className="font-heading text-2xl font-semibold">Murales — {project.name}</h1>
-          <CreateMuralForm projectId={project.id} />
+          <CreateMuralForm projectId={projectId} />
         </div>
-        <ProjectNav projectId={project.id} active="murals" />
+        <ProjectNav projectId={projectId} active="murals" />
       </header>
 
       {murals.length === 0 ? (
@@ -43,7 +53,7 @@ export default async function ProjectMuralsPage({ params }: { params: Promise<{ 
                 className="shadow-soft-hover block rounded-xl border border-border bg-surface p-4 hover:border-accent"
               >
                 <p className="font-heading text-base font-medium">{mural.name}</p>
-                <p className="mt-1 text-xs text-ink/50">{mural._count.muralElements} elementos</p>
+                <p className="mt-1 text-xs text-ink/50">{mural.elementCount} elementos</p>
               </Link>
             </li>
           ))}
