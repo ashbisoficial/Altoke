@@ -6,21 +6,16 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
-    "postinstall": "prisma generate"
+    "lint": "next lint"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
-    "@prisma/client": "^6.19.3",
-    "@supabase/ssr": "^0.12.4",
-    "@supabase/supabase-js": "^2.112.3",
     "firebase": "^13.0.0",
     "firebase-admin": "^14.5.0",
     "lucide-react": "^1.33.0",
     "next": "^15.5.23",
-    "prisma": "^6.19.3",
     "react": "^18",
     "react-dom": "^18",
     "zod": "^4.4.3"
