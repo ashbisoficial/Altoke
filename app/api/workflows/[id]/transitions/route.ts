@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { prisma } from "@/lib/prisma";
+import { adminDb } from "@/lib/firebase/admin";
 import { getSessionUser } from "@/lib/auth";
 import { errorResponse, forbidden, notFound, unauthorized, zodErrorResponse } from "@/lib/http";
 import { hasProjectPermission } from "@/lib/permissions";
@@ -14,31 +14,34 @@ const createTransitionSchema = z.object({
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const user = await getSessionUser();
   if (!user) return unauthorized();
-  const { id: workflowId } = await params;
+  const { id: projectId } = await params;
 
-  const project = await prisma.project.findFirst({ where: { workflowId } });
-  if (!project) return notFound("Flujo de trabajo");
-  if (!(await hasProjectPermission(user.id, project.id, "workflow.edit"))) return forbidden();
+  if (!(await hasProjectPermission(user.id, projectId, "workflow.edit"))) return forbidden();
 
   const parsed = createTransitionSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return zodErrorResponse(parsed.error);
-  const { fromStatusId, toStatusId } = parsed.data;
+  const { fromStatusId, toStatusId, name } = parsed.data;
 
   if (fromStatusId === toStatusId) {
     return errorResponse(400, "El estado de origen y destino no pueden ser el mismo");
   }
 
-  const [fromStatus, toStatus] = await Promise.all([
-    prisma.workflowStatus.findFirst({ where: { id: fromStatusId, workflowId } }),
-    prisma.workflowStatus.findFirst({ where: { id: toStatusId, workflowId } }),
-  ]);
-  if (!fromStatus || !toStatus) {
+  const ref = adminDb.doc(`projects/${projectId}`);
+  const projectSnap = await ref.get();
+  if (!projectSnap.exists) return notFound("Proyecto");
+  const statuses = (projectSnap.data()!.workflow?.statuses ?? []) as { id: string }[];
+  if (!statuses.some((s) => s.id === fromStatusId) || !statuses.some((s) => s.id === toStatusId)) {
     return errorResponse(400, "Ambos estados deben pertenecer a este flujo de trabajo");
   }
 
-  const transition = await prisma.workflowTransition.create({
-    data: { workflowId, name: parsed.data.name, fromStatusId, toStatusId },
+  const newTransition = { id: crypto.randomUUID(), name, fromStatusId, toStatusId };
+
+  await adminDb.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    const workflow = snap.data()!.workflow ?? { statuses: [], transitions: [] };
+    const transitions = [...(workflow.transitions ?? []), newTransition];
+    tx.update(ref, { "workflow.transitions": transitions });
   });
 
-  return NextResponse.json({ transition }, { status: 201 });
+  return NextResponse.json({ transition: newTransition }, { status: 201 });
 }

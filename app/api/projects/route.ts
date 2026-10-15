@@ -27,7 +27,7 @@ function buildDefaultWorkflow(name: string) {
   const statuses = DEFAULT_WORKFLOW_STATUSES.map((s) => {
     const id = crypto.randomUUID();
     statusIdByName.set(s.name, id);
-    return { id, ...s };
+    return { id, ...s, isInitial: s.isInitial ?? false };
   });
   const transitions = DEFAULT_WORKFLOW_TRANSITIONS.map((t) => ({
     id: crypto.randomUUID(),
@@ -132,7 +132,12 @@ export async function POST(request: NextRequest) {
   for (const issueType of DEFAULT_ISSUE_TYPES) {
     batch.set(projectRef.collection("issueTypes").doc(), issueType);
   }
-  batch.set(projectRef.collection("boards").doc(), { name: "Tablero principal" });
+  batch.set(adminDb.collection("boards").doc(), {
+    projectId: projectRef.id,
+    name: "Tablero principal",
+    type: "MURAL",
+    createdAt: FieldValue.serverTimestamp(),
+  });
   batch.set(projectRef.collection("members").doc(user.id), {
     userId: user.id,
     role,

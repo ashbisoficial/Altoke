@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { prisma } from "@/lib/prisma";
+import { FieldValue } from "firebase-admin/firestore";
+import { adminDb } from "@/lib/firebase/admin";
+import { tsToISO } from "@/lib/firebase/firestore-utils";
 import { getSessionUser } from "@/lib/auth";
 import { forbidden, unauthorized, zodErrorResponse } from "@/lib/http";
 import { hasProjectPermission, isProjectMember } from "@/lib/permissions";
@@ -17,14 +19,20 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
 
   if (!(await isProjectMember(user.id, projectId))) return forbidden();
 
-  const testPlans = await prisma.testPlan.findMany({
-    where: { projectId },
-    include: {
-      sprint: { select: { id: true, name: true } },
-      _count: { select: { cases: true, executions: true } },
-    },
-    orderBy: { createdAt: "desc" },
-  });
+  const snap = await adminDb.collection("testPlans").where("projectId", "==", projectId).get();
+  const testPlans = await Promise.all(
+    snap.docs.map(async (d) => {
+      const data = d.data();
+      const executionCount = await adminDb.collection("testExecutions").where("testPlanId", "==", d.id).count().get();
+      return {
+        id: d.id,
+        name: data.name,
+        createdAt: tsToISO(data.createdAt),
+        _count: { cases: (data.cases ?? []).length, executions: executionCount.data().count },
+      };
+    }),
+  );
+  testPlans.sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""));
 
   return NextResponse.json({ testPlans });
 }
@@ -39,6 +47,14 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const parsed = createTestPlanSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return zodErrorResponse(parsed.error);
 
-  const testPlan = await prisma.testPlan.create({ data: { projectId, ...parsed.data } });
-  return NextResponse.json({ testPlan }, { status: 201 });
+  const ref = await adminDb.collection("testPlans").add({
+    projectId,
+    name: parsed.data.name,
+    sprintId: parsed.data.sprintId ?? null,
+    cases: [],
+    createdAt: FieldValue.serverTimestamp(),
+  });
+  const created = await ref.get();
+  const data = created.data()!;
+  return NextResponse.json({ testPlan: { id: ref.id, ...data, createdAt: tsToISO(data.createdAt) } }, { status: 201 });
 }

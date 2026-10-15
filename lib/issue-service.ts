@@ -140,8 +140,8 @@ export async function updateIssue(
   if (sprintId !== undefined) {
     updates.sprintId = sprintId;
     const [existingSprintSnap, newSprintSnap] = await Promise.all([
-      existing.sprintId ? adminDb.doc(`projects/${existing.projectId}/sprints/${existing.sprintId}`).get() : null,
-      sprintId ? adminDb.doc(`projects/${existing.projectId}/sprints/${sprintId}`).get() : null,
+      existing.sprintId ? adminDb.doc(`sprints/${existing.sprintId}`).get() : null,
+      sprintId ? adminDb.doc(`sprints/${sprintId}`).get() : null,
     ]);
     existingSprintName = existingSprintSnap?.exists ? existingSprintSnap.data()!.name : null;
     newSprintName = newSprintSnap?.exists ? newSprintSnap.data()!.name : null;

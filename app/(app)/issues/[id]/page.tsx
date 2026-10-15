@@ -45,7 +45,7 @@ export default async function IssueDetailPage({
     issueRef.collection("activity").orderBy("createdAt", "desc").limit(30).get(),
     adminDb.doc(`projects/${issueData.projectId}`).get(),
     adminDb.collection(`projects/${issueData.projectId}/issueTypes`).get(),
-    adminDb.collection(`projects/${issueData.projectId}/sprints`).orderBy("createdAt", "desc").get(),
+    adminDb.collection("sprints").where("projectId", "==", issueData.projectId).orderBy("createdAt", "desc").get(),
     adminDb.collection(`projects/${issueData.projectId}/members`).get(),
     adminDb.collection("labels").where("projectId", "==", issueData.projectId).get(),
     adminDb.collection("issues").where("projectId", "==", issueData.projectId).orderBy("number", "asc").get(),

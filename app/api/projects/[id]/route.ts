@@ -25,8 +25,8 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
       projectRef.collection("issueTypes").get(),
       adminDb.collection("labels").where("projectId", "==", id).get(),
       projectRef.collection("components").get(),
-      projectRef.collection("boards").get(),
-      projectRef.collection("sprints").orderBy("createdAt", "desc").get(),
+      adminDb.collection("boards").where("projectId", "==", id).get(),
+      adminDb.collection("sprints").where("projectId", "==", id).orderBy("createdAt", "desc").get(),
       projectRef.collection("members").get(),
     ]);
   if (!projectSnap.exists) return notFound("Proyecto");

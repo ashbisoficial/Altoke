@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { prisma } from "@/lib/prisma";
+import { FieldValue } from "firebase-admin/firestore";
+import { adminDb } from "@/lib/firebase/admin";
 import { getSessionUser } from "@/lib/auth";
 import { forbidden, notFound, unauthorized, zodErrorResponse } from "@/lib/http";
 import { hasProjectPermission } from "@/lib/permissions";
@@ -15,12 +16,14 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   if (!user) return unauthorized();
   const { id } = await params;
 
-  const run = await prisma.testRun.findUnique({
-    where: { id },
-    include: { testCase: { include: { issue: { select: { projectId: true } } } } },
-  });
-  if (!run) return notFound("Ejecución de prueba");
-  if (!(await hasProjectPermission(user.id, run.testCase.issue.projectId, "testing.manage"))) {
+  const ref = adminDb.doc(`testRuns/${id}`);
+  const snap = await ref.get();
+  if (!snap.exists) return notFound("Ejecución de prueba");
+  const run = snap.data()!;
+
+  const testCaseSnap = await adminDb.doc(`testCases/${run.testCaseId}`).get();
+  if (!testCaseSnap.exists) return notFound("Caso de prueba");
+  if (!(await hasProjectPermission(user.id, testCaseSnap.data()!.projectId, "testing.manage"))) {
     return forbidden();
   }
 
@@ -28,16 +31,22 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   if (!parsed.success) return zodErrorResponse(parsed.error);
   const { status, comment } = parsed.data;
 
-  const updated = await prisma.testRun.update({
-    where: { id },
-    data: {
-      status,
-      comment,
-      executedById: user.id,
-      executedAt: new Date(),
-    },
-    include: { executedBy: { select: { id: true, name: true, email: true } } },
-  });
+  const executedBy = { id: user.id, name: user.name, email: user.email };
 
-  return NextResponse.json({ run: updated });
+  await Promise.all([
+    ref.update({
+      status,
+      comment: comment ?? null,
+      executedById: user.id,
+      executedBy,
+      executedAt: FieldValue.serverTimestamp(),
+    }),
+    adminDb.doc(`testCases/${run.testCaseId}`).update({ lastRunStatus: status }),
+  ]);
+
+  const updated = await ref.get();
+  const data = updated.data()!;
+  return NextResponse.json({
+    run: { id, status: data.status, comment: data.comment, testCaseId: data.testCaseId, executedBy: data.executedBy },
+  });
 }

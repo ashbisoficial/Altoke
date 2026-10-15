@@ -1,5 +1,5 @@
 import { notFound, redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { adminDb } from "@/lib/firebase/admin";
 import { getSessionUser } from "@/lib/auth";
 import { hasProjectPermission, isProjectMember } from "@/lib/permissions";
 import { WorkflowEditor } from "@/components/workflow/WorkflowEditor";
@@ -12,11 +12,9 @@ export default async function WorkflowPage({ params }: { params: Promise<{ id: s
   const { id: projectId } = await params;
   if (!(await isProjectMember(user.id, projectId))) notFound();
 
-  const project = await prisma.project.findUnique({
-    where: { id: projectId },
-    include: { workflow: { include: { statuses: true, transitions: true } } },
-  });
-  if (!project) notFound();
+  const projectSnap = await adminDb.doc(`projects/${projectId}`).get();
+  if (!projectSnap.exists) notFound();
+  const project = projectSnap.data()!;
 
   const canEdit = await hasProjectPermission(user.id, projectId, "workflow.edit");
 
@@ -31,13 +29,16 @@ export default async function WorkflowPage({ params }: { params: Promise<{ id: s
             </p>
           )}
         </div>
-        <ProjectNav projectId={project.id} active="workflow" />
+        <ProjectNav projectId={projectId} active="workflow" />
       </header>
 
       <WorkflowEditor
-        workflowId={project.workflow.id}
-        statuses={project.workflow.statuses}
-        transitions={project.workflow.transitions}
+        workflowId={projectId}
+        statuses={(project.workflow?.statuses ?? []).map((s: Record<string, unknown>) => ({
+          ...s,
+          isInitial: Boolean(s.isInitial),
+        }))}
+        transitions={project.workflow?.transitions ?? []}
         canEdit={canEdit}
       />
     </main>
