@@ -10,7 +10,7 @@ import {
   Sparkles,
   ArrowRight,
 } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
+import { getSessionUser } from "@/lib/auth";
 import { Logo } from "@/components/layout/Logo";
 
 const BUTTON_CLASSES =
@@ -74,10 +74,7 @@ const STEPS = [
 ];
 
 export default async function Home() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getSessionUser();
 
   return (
     <main className="bg-bg">

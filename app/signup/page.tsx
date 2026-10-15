@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/client";
+import { createUserWithEmailAndPassword, sendEmailVerification, updateProfile, signOut } from "firebase/auth";
+import { getFirebaseAuth } from "@/lib/firebase/client";
+import { firebaseErrorMessage } from "@/lib/firebase/errors";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Logo } from "@/components/layout/Logo";
@@ -19,21 +21,25 @@ export default function SignupPage() {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    const supabase = createClient();
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { name },
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-      },
-    });
-    setLoading(false);
-    if (error) {
-      setError(error.message);
-      return;
+    const auth = getFirebaseAuth();
+    try {
+      const credential = await createUserWithEmailAndPassword(auth, email, password);
+      if (name.trim()) {
+        await updateProfile(credential.user, { displayName: name.trim() });
+      }
+      await sendEmailVerification(credential.user, {
+        url: `${window.location.origin}/auth/callback`,
+        handleCodeInApp: true,
+      });
+      // Don't leave them signed in until they've confirmed the address —
+      // mirrors the old Supabase behavior (email confirmation required).
+      await signOut(auth);
+      setDone(true);
+    } catch (err) {
+      setError(firebaseErrorMessage(err));
+    } finally {
+      setLoading(false);
     }
-    setDone(true);
   }
 
   return (

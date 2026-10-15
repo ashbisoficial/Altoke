@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
+import { updatePassword } from "firebase/auth";
+import { getFirebaseAuth } from "@/lib/firebase/client";
+import { firebaseErrorMessage } from "@/lib/firebase/errors";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 
@@ -58,17 +60,22 @@ export function AccountSettings({
       setPasswordError("Las contraseñas no coinciden");
       return;
     }
-    setSavingPassword(true);
-    const supabase = createClient();
-    const { error } = await supabase.auth.updateUser({ password });
-    setSavingPassword(false);
-    if (error) {
-      setPasswordError(error.message);
+    const auth = getFirebaseAuth();
+    if (!auth.currentUser) {
+      setPasswordError("Por seguridad, cierra sesión y vuelve a entrar antes de cambiar la contraseña");
       return;
     }
-    setPassword("");
-    setConfirmPassword("");
-    setPasswordSaved(true);
+    setSavingPassword(true);
+    try {
+      await updatePassword(auth.currentUser, password);
+      setPassword("");
+      setConfirmPassword("");
+      setPasswordSaved(true);
+    } catch (err) {
+      setPasswordError(firebaseErrorMessage(err));
+    } finally {
+      setSavingPassword(false);
+    }
   }
 
   return (
