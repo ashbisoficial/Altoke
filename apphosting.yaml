@@ -1,0 +1,43 @@
+# Firebase App Hosting — build/runtime config for Next.js SSR.
+# https://firebase.google.com/docs/app-hosting/configure
+#
+# The NEXT_PUBLIC_* values below are the Firebase client config — public by
+# design (they ship in the browser bundle either way), safe to commit.
+# The three secrets (FIREBASE_PRIVATE_KEY, FIREBASE_CLIENT_EMAIL,
+# RESEND_API_KEY) are NOT here — App Hosting prompts for them (stored in
+# Secret Manager) the first time you connect this repo in the console.
+
+runConfig:
+  minInstances: 0
+  maxInstances: 1
+  concurrency: 80
+  cpu: 1
+  memoryMiB: 512
+
+env:
+  - variable: NEXT_PUBLIC_FIREBASE_API_KEY
+    value: "AIzaSyDdJfrttg3harT5nmLguzQpsJCT4GCk15Y"
+    availability: [BUILD, RUNTIME]
+  - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+    value: "altoke-ashbis.firebaseapp.com"
+    availability: [BUILD, RUNTIME]
+  - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
+    value: "altoke-ashbis"
+    availability: [BUILD, RUNTIME]
+  - variable: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+    value: "altoke-ashbis.firebasestorage.app"
+    availability: [BUILD, RUNTIME]
+  - variable: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+    value: "90134404607"
+    availability: [BUILD, RUNTIME]
+  - variable: NEXT_PUBLIC_FIREBASE_APP_ID
+    value: "1:90134404607:web:b7da574a3821de77af1bca"
+    availability: [BUILD, RUNTIME]
+  - variable: FIREBASE_PROJECT_ID
+    value: "altoke-ashbis"
+    availability: [RUNTIME]
+  # Update this once you know the real App Hosting URL (Firebase Console
+  # shows it after the first deploy) — used to build invite/auth links.
+  - variable: NEXT_PUBLIC_SITE_URL
+    value: "https://altoke-ashbis.web.app"
+    availability: [BUILD, RUNTIME]

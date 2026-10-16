@@ -1,6 +1,6 @@
 # Altoke
 
-Herramienta de gestión de proyectos (tipo Jira) con pizarra colaborativa (tipo Mural), pensada para operar 100% en capas gratuitas (Firebase + Vercel).
+Herramienta de gestión de proyectos (tipo Jira) con pizarra colaborativa (tipo Mural), pensada para operar 100% en capas gratuitas de Firebase (Auth, Firestore, Storage y App Hosting).
 
 ## Stack
 
@@ -28,6 +28,21 @@ Herramienta de gestión de proyectos (tipo Jira) con pizarra colaborativa (tipo 
    npm run dev
    ```
 5. Abre `http://localhost:3000` — te redirige a `/login`. Regístrate desde `/signup`.
+
+## Despliegue (Firebase App Hosting)
+
+La app es SSR dinámica de punta a punta (sesiones, Firestore en cada request) — no sirve un export estático, así que el hosting es **Firebase App Hosting** (no el Hosting clásico de Firebase, que es solo para archivos estáticos). `apphosting.yaml` en la raíz del repo ya tiene la config de build/runtime y las variables públicas (`NEXT_PUBLIC_FIREBASE_*`) — faltan los tres secretos, que se cargan desde la consola:
+
+1. **Firebase Console → App Hosting → Comenzar** (o "Crear backend" si ya tenés uno de antes).
+2. Conectá este repositorio de GitHub y elegí la rama que querés desplegar.
+3. Cuando te pida las variables de entorno, agregá estos tres como **secreto** (Secret Manager, no como texto plano):
+   - `FIREBASE_CLIENT_EMAIL`
+   - `FIREBASE_PRIVATE_KEY`
+   - `RESEND_API_KEY` (opcional)
+4. Al terminar el primer deploy, la consola te da la URL (`https://<backend>--<proyecto>.<región>.hosted.app`, o podés agregar un dominio propio). Actualizá `NEXT_PUBLIC_SITE_URL` en `apphosting.yaml` con esa URL y hacé push — se usa para armar los enlaces de invitación y de los correos de Auth.
+5. Cada push a la rama conectada despliega solo (mismo modelo que tenía Vercel).
+
+No hace falta `firebase-tools` instalado para nada de esto — todo se hace desde la consola.
 
 ## Índices de Firestore
 

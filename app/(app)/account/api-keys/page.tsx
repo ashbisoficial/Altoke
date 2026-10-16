@@ -53,7 +53,7 @@ export default async function ApiKeysPage() {
           Mandá la llave en el header <code className="text-xs">Authorization</code> de cada pedido:
         </p>
         <pre className="mt-2 overflow-x-auto rounded-lg bg-neutral-900 p-3 text-xs text-neutral-50">
-          {`curl https://altoke-one.vercel.app/api/v1/projects \\
+          {`curl https://tu-dominio.hosted.app/api/v1/projects \\
   -H "Authorization: Bearer altk_tu_llave_aca"`}
         </pre>
         <table className="mt-4 w-full text-left text-xs">
