@@ -1,0 +1,37 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // The app's Next.js API routes (Admin SDK) are the only write path and
+    // the only path for authorization-sensitive reads — these rules exist
+    // only so the mural's live-collaboration listener can read Firestore
+    // directly from the browser (components/mural/MuralCanvas.tsx). Every
+    // other collection stays closed to direct client access (Firestore
+    // denies by default when no `allow` matches, this catch-all is just
+    // explicit about that).
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    match /muralElements/{elementId} {
+      allow read: if request.auth != null && canAccessBoard(resource.data.boardId);
+    }
+
+    function canAccessBoard(boardId) {
+      let board = get(/databases/$(database)/documents/boards/$(boardId)).data;
+      return hasProjectAccess(board.projectId);
+    }
+
+    // A user can read a project's mural if they're a direct project member,
+    // or a member of the project's organization (same fallback
+    // lib/permissions.ts uses) — both encoded as custom claims
+    // (lib/firebase/claims.ts) kept in sync on every membership write.
+    function hasProjectAccess(projectId) {
+      return ('projects' in request.auth.token && projectId in request.auth.token.projects) ||
+             ('orgs' in request.auth.token && getProjectOrgId(projectId) in request.auth.token.orgs);
+    }
+
+    function getProjectOrgId(projectId) {
+      return get(/databases/$(database)/documents/projects/$(projectId)).data.organizationId;
+    }
+  }
+}

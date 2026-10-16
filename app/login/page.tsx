@@ -3,10 +3,14 @@
 import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
+import { signInWithEmailAndPassword, sendSignInLinkToEmail, signOut } from "firebase/auth";
+import { getFirebaseAuth } from "@/lib/firebase/client";
+import { firebaseErrorMessage } from "@/lib/firebase/errors";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Logo } from "@/components/layout/Logo";
+
+const EMAIL_FOR_SIGN_IN_KEY = "altoke:emailForSignIn";
 
 export default function LoginPage() {
   return (
@@ -28,38 +32,54 @@ function LoginForm() {
   const [error, setError] = useState<string | null>(null);
   const [magicLinkSent, setMagicLinkSent] = useState(false);
 
+  async function establishSession(idToken: string) {
+    const res = await fetch("/api/auth/session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ idToken }),
+    });
+    if (!res.ok) throw new Error("No se pudo iniciar sesión");
+  }
+
   async function handlePasswordSignIn(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    const supabase = createClient();
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setLoading(false);
-    if (error) {
-      setError(error.message);
-      return;
+    const auth = getFirebaseAuth();
+    try {
+      const credential = await signInWithEmailAndPassword(auth, email, password);
+      if (!credential.user.emailVerified) {
+        await signOut(auth);
+        setError("Confirma tu correo antes de iniciar sesión — revisa tu bandeja de entrada.");
+        setLoading(false);
+        return;
+      }
+      await establishSession(await credential.user.getIdToken());
+      router.push(next);
+      router.refresh();
+    } catch (err) {
+      setError(firebaseErrorMessage(err));
+      setLoading(false);
     }
-    router.push(next);
-    router.refresh();
   }
 
   async function handleMagicLink(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    const supabase = createClient();
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
-      },
-    });
-    setLoading(false);
-    if (error) {
-      setError(error.message);
-      return;
+    const auth = getFirebaseAuth();
+    try {
+      await sendSignInLinkToEmail(auth, email, {
+        url: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
+        handleCodeInApp: true,
+      });
+      window.localStorage.setItem(EMAIL_FOR_SIGN_IN_KEY, email);
+      setMagicLinkSent(true);
+    } catch (err) {
+      setError(firebaseErrorMessage(err));
+    } finally {
+      setLoading(false);
     }
-    setMagicLinkSent(true);
   }
 
   return (

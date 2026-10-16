@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { prisma } from "@/lib/prisma";
+import { adminDb } from "@/lib/firebase/admin";
 import { getSessionUser } from "@/lib/auth";
 import { errorResponse, forbidden, notFound, unauthorized, zodErrorResponse } from "@/lib/http";
 import { hasProjectPermission } from "@/lib/permissions";
@@ -13,44 +13,40 @@ const updateStatusSchema = z.object({
   isInitial: z.boolean().optional(),
 });
 
-async function authorize(workflowId: string, userId: string) {
-  const project = await prisma.project.findFirst({ where: { workflowId } });
-  if (!project) return { ok: false as const, reason: "not-found" as const };
-  if (!(await hasProjectPermission(userId, project.id, "workflow.edit"))) {
-    return { ok: false as const, reason: "forbidden" as const };
-  }
-  return { ok: true as const, project };
-}
-
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string; statusId: string }> },
 ) {
   const user = await getSessionUser();
   if (!user) return unauthorized();
-  const { id: workflowId, statusId } = await params;
+  const { id: projectId, statusId } = await params;
 
-  const auth = await authorize(workflowId, user.id);
-  if (!auth.ok) return auth.reason === "not-found" ? notFound("Flujo de trabajo") : forbidden();
+  if (!(await hasProjectPermission(user.id, projectId, "workflow.edit"))) return forbidden();
 
   const parsed = updateStatusSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return zodErrorResponse(parsed.error);
-  const { isInitial, ...rest } = parsed.data;
 
-  const existing = await prisma.workflowStatus.findFirst({ where: { id: statusId, workflowId } });
-  if (!existing) return notFound("Estado");
+  const ref = adminDb.doc(`projects/${projectId}`);
+  let updatedStatus: Record<string, unknown> | null = null;
 
-  const status = await prisma.$transaction(async (tx) => {
-    if (isInitial) {
-      await tx.workflowStatus.updateMany({ where: { workflowId }, data: { isInitial: false } });
+  await adminDb.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    if (!snap.exists) return;
+    const workflow = snap.data()!.workflow ?? { statuses: [], transitions: [] };
+    const statuses = [...(workflow.statuses ?? [])] as Record<string, unknown>[];
+    const idx = statuses.findIndex((s) => s.id === statusId);
+    if (idx === -1) return;
+
+    if (parsed.data.isInitial) {
+      for (const s of statuses) s.isInitial = false;
     }
-    return tx.workflowStatus.update({
-      where: { id: statusId },
-      data: { ...rest, ...(isInitial !== undefined ? { isInitial } : {}) },
-    });
+    statuses[idx] = { ...statuses[idx], ...parsed.data };
+    updatedStatus = statuses[idx];
+    tx.update(ref, { "workflow.statuses": statuses });
   });
 
-  return NextResponse.json({ status });
+  if (!updatedStatus) return notFound("Estado");
+  return NextResponse.json({ status: updatedStatus });
 }
 
 export async function DELETE(
@@ -59,19 +55,28 @@ export async function DELETE(
 ) {
   const user = await getSessionUser();
   if (!user) return unauthorized();
-  const { id: workflowId, statusId } = await params;
+  const { id: projectId, statusId } = await params;
 
-  const auth = await authorize(workflowId, user.id);
-  if (!auth.ok) return auth.reason === "not-found" ? notFound("Flujo de trabajo") : forbidden();
+  if (!(await hasProjectPermission(user.id, projectId, "workflow.edit"))) return forbidden();
 
-  const existing = await prisma.workflowStatus.findFirst({ where: { id: statusId, workflowId } });
-  if (!existing) return notFound("Estado");
-
-  const issuesInStatus = await prisma.issue.count({ where: { statusId } });
-  if (issuesInStatus > 0) {
+  const issuesInStatus = await adminDb.collection("issues").where("statusId", "==", statusId).limit(1).get();
+  if (!issuesInStatus.empty) {
     return errorResponse(409, "No puedes eliminar un estado que tiene incidencias asignadas");
   }
 
-  await prisma.workflowStatus.delete({ where: { id: statusId } });
+  const ref = adminDb.doc(`projects/${projectId}`);
+  let found = false;
+
+  await adminDb.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    if (!snap.exists) return;
+    const workflow = snap.data()!.workflow ?? { statuses: [], transitions: [] };
+    const statuses = (workflow.statuses ?? []) as { id: string }[];
+    if (!statuses.some((s) => s.id === statusId)) return;
+    found = true;
+    tx.update(ref, { "workflow.statuses": statuses.filter((s) => s.id !== statusId) });
+  });
+
+  if (!found) return notFound("Estado");
   return NextResponse.json({ ok: true });
 }

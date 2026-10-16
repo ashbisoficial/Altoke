@@ -1,8 +1,9 @@
 import { notFound, redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { adminDb } from "@/lib/firebase/admin";
 import { getSessionUser } from "@/lib/auth";
 import { hasProjectPermission, isProjectMember } from "@/lib/permissions";
 import { MuralCanvas } from "@/components/mural/MuralCanvas";
+import type { MuralElementData } from "@/components/mural/types";
 
 export default async function MuralPage({ params }: { params: Promise<{ boardId: string }> }) {
   const user = await getSessionUser();
@@ -10,30 +11,48 @@ export default async function MuralPage({ params }: { params: Promise<{ boardId:
 
   const { boardId } = await params;
 
-  const board = await prisma.board.findUnique({
-    where: { id: boardId },
-    include: { project: { select: { id: true, name: true } } },
-  });
-  if (!board) notFound();
+  const boardSnap = await adminDb.doc(`boards/${boardId}`).get();
+  if (!boardSnap.exists) notFound();
+  const board = boardSnap.data()!;
   if (!(await isProjectMember(user.id, board.projectId))) notFound();
 
-  const [elements, canEdit, taskType] = await Promise.all([
-    prisma.muralElement.findMany({ where: { boardId }, orderBy: { zIndex: "asc" } }),
+  const [projectSnap, elementsSnap, canEdit, taskTypeSnap] = await Promise.all([
+    adminDb.doc(`projects/${board.projectId}`).get(),
+    adminDb.collection("muralElements").where("boardId", "==", boardId).get(),
     hasProjectPermission(user.id, board.projectId, "mural.edit"),
-    prisma.issueType.findFirst({ where: { projectId: board.projectId, name: "Tarea" } }),
+    adminDb.collection(`projects/${board.projectId}/issueTypes`).where("name", "==", "Tarea").limit(1).get(),
   ]);
+
+  // Build only the fields MuralElementData declares — Firestore Timestamp
+  // instances (createdAt/updatedAt) can't cross the server->client RSC
+  // boundary as props, so they must not survive into this object.
+  const elements = elementsSnap.docs
+    .map((d) => {
+      const data = d.data();
+      return {
+        id: d.id,
+        type: data.type,
+        x: data.x,
+        y: data.y,
+        width: data.width,
+        height: data.height,
+        rotation: data.rotation,
+        color: data.color,
+        zIndex: data.zIndex,
+        content: data.content,
+        createdById: data.createdById,
+      } as MuralElementData;
+    })
+    .sort((a, b) => a.zIndex - b.zIndex);
 
   return (
     <MuralCanvas
-      boardId={board.id}
-      projectId={board.project.id}
-      projectName={`${board.project.name} — ${board.name}`}
-      initialElements={elements.map((e) => ({
-        ...e,
-        content: e.content as Record<string, unknown>,
-      }))}
+      boardId={boardId}
+      projectId={board.projectId}
+      projectName={`${projectSnap.data()?.name} — ${board.name}`}
+      initialElements={elements}
       canEdit={canEdit}
-      taskIssueTypeId={taskType?.id ?? null}
+      taskIssueTypeId={taskTypeSnap.empty ? null : taskTypeSnap.docs[0].id}
     />
   );
 }

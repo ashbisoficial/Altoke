@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { prisma } from "@/lib/prisma";
+import { FieldValue } from "firebase-admin/firestore";
+import { adminDb } from "@/lib/firebase/admin";
+import { tsToISO } from "@/lib/firebase/firestore-utils";
 import { getSessionUser } from "@/lib/auth";
 import { unauthorized, zodErrorResponse } from "@/lib/http";
 import { generateApiKey } from "@/lib/api-keys";
@@ -9,22 +11,23 @@ const createKeySchema = z.object({
   name: z.string().trim().min(1).max(80),
 });
 
+function serializeKey(id: string, data: FirebaseFirestore.DocumentData) {
+  return {
+    id,
+    name: data.name,
+    keyPrefix: data.keyPrefix,
+    createdAt: tsToISO(data.createdAt),
+    lastUsedAt: tsToISO(data.lastUsedAt),
+    revokedAt: tsToISO(data.revokedAt),
+  };
+}
+
 export async function GET() {
   const user = await getSessionUser();
   if (!user) return unauthorized();
 
-  const apiKeys = await prisma.apiKey.findMany({
-    where: { userId: user.id },
-    select: {
-      id: true,
-      name: true,
-      keyPrefix: true,
-      createdAt: true,
-      lastUsedAt: true,
-      revokedAt: true,
-    },
-    orderBy: { createdAt: "desc" },
-  });
+  const snap = await adminDb.collection("apiKeys").where("userId", "==", user.id).orderBy("createdAt", "desc").get();
+  const apiKeys = snap.docs.map((d) => serializeKey(d.id, d.data()));
 
   return NextResponse.json({ apiKeys });
 }
@@ -37,11 +40,18 @@ export async function POST(request: NextRequest) {
   if (!parsed.success) return zodErrorResponse(parsed.error);
 
   const { key, keyHash, keyPrefix } = generateApiKey();
-  const apiKey = await prisma.apiKey.create({
-    data: { name: parsed.data.name, userId: user.id, keyHash, keyPrefix },
+  const ref = await adminDb.collection("apiKeys").add({
+    name: parsed.data.name,
+    userId: user.id,
+    keyHash,
+    keyPrefix,
+    createdAt: FieldValue.serverTimestamp(),
+    lastUsedAt: null,
+    revokedAt: null,
   });
+  const created = await ref.get();
 
   // The plaintext key is only ever available in this response — it isn't
   // recoverable afterwards, only the hash is stored.
-  return NextResponse.json({ apiKey: { ...apiKey, key } }, { status: 201 });
+  return NextResponse.json({ apiKey: { ...serializeKey(ref.id, created.data()!), key } }, { status: 201 });
 }

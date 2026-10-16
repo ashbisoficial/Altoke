@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { adminDb } from "@/lib/firebase/admin";
 import { getSessionUser } from "@/lib/auth";
 import { AcceptInvitation } from "@/components/invitations/AcceptInvitation";
 import { Logo } from "@/components/layout/Logo";
@@ -7,21 +7,20 @@ import { Logo } from "@/components/layout/Logo";
 export default async function InvitePage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
 
-  const invitation = await prisma.invitation.findUnique({
-    where: { token },
-    include: {
-      organization: { select: { name: true } },
-      project: { select: { name: true } },
-      orgRole: { select: { name: true } },
-      invitedBy: { select: { name: true, email: true } },
-    },
-  });
-  if (!invitation) notFound();
+  const snap = await adminDb.doc(`invitations/${token}`).get();
+  if (!snap.exists) notFound();
+  const invitation = snap.data()!;
 
-  const user = await getSessionUser();
+  const [orgSnap, projectSnap, inviterSnap, user] = await Promise.all([
+    adminDb.doc(`organizations/${invitation.organizationId}`).get(),
+    invitation.projectId ? adminDb.doc(`projects/${invitation.projectId}`).get() : Promise.resolve(null),
+    adminDb.doc(`users/${invitation.invitedById}`).get(),
+    getSessionUser(),
+  ]);
 
-  const isExpired = invitation.expiresAt < new Date();
-  const inviterName = invitation.invitedBy.name ?? invitation.invitedBy.email;
+  const isExpired = invitation.expiresAt.toDate() < new Date();
+  const inviter = inviterSnap.data();
+  const inviterName = inviter?.name ?? inviter?.email ?? "";
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-bg px-4">
@@ -42,16 +41,16 @@ export default async function InvitePage({ params }: { params: Promise<{ token: 
           <>
             <p className="mt-4 text-sm text-ink/70">
               <strong>{inviterName}</strong> te invitó a unirte a{" "}
-              <strong>{invitation.organization.name}</strong>
-              {invitation.project && (
+              <strong>{orgSnap.exists ? orgSnap.data()!.name : ""}</strong>
+              {projectSnap?.exists && (
                 <>
                   {" "}
-                  y al proyecto <strong>{invitation.project.name}</strong>
+                  y al proyecto <strong>{projectSnap.data()!.name}</strong>
                 </>
               )}
               .
             </p>
-            <p className="mt-1 text-xs text-ink/50">Rol: {invitation.orgRole.name}</p>
+            <p className="mt-1 text-xs text-ink/50">Rol: {invitation.orgRoleId}</p>
             <div className="mt-6">
               <AcceptInvitation token={token} isLoggedIn={!!user} />
             </div>

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { prisma } from "@/lib/prisma";
+import { FieldValue } from "firebase-admin/firestore";
+import { adminDb } from "@/lib/firebase/admin";
 import { getSessionUser } from "@/lib/auth";
 import { errorResponse, forbidden, notFound, unauthorized, zodErrorResponse } from "@/lib/http";
 import { hasProjectPermission } from "@/lib/permissions";
@@ -14,27 +15,28 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   if (!user) return unauthorized();
   const { id } = await params;
 
-  const testCase = await prisma.testCase.findUnique({
-    where: { id },
-    include: { issue: { select: { projectId: true } } },
-  });
-  if (!testCase) return notFound("Caso de prueba");
-  if (!(await hasProjectPermission(user.id, testCase.issue.projectId, "testing.manage"))) {
-    return forbidden();
-  }
+  const ref = adminDb.doc(`testCases/${id}`);
+  const snap = await ref.get();
+  if (!snap.exists) return notFound("Caso de prueba");
+  const testCase = snap.data()!;
+  if (!(await hasProjectPermission(user.id, testCase.projectId, "testing.manage"))) return forbidden();
 
   const parsed = addRequirementSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return zodErrorResponse(parsed.error);
 
-  const requirement = await prisma.issue.findUnique({ where: { id: parsed.data.issueId } });
-  if (!requirement || requirement.projectId !== testCase.issue.projectId) {
+  const reqSnap = await adminDb.doc(`issues/${parsed.data.issueId}`).get();
+  if (!reqSnap.exists || reqSnap.data()!.projectId !== testCase.projectId) {
     return errorResponse(400, "El requisito debe pertenecer al mismo proyecto");
   }
+  const reqData = reqSnap.data()!;
 
-  const link = await prisma.testCaseRequirement.create({
-    data: { testCaseId: id, issueId: parsed.data.issueId },
-    include: { issue: { select: { id: true, key: true, title: true } } },
-  });
+  const entry = { issue: { id: reqSnap.id, key: reqData.key, title: reqData.title } };
+  const already = ((testCase.requirements ?? []) as { issue: { id: string } }[]).some(
+    (r) => r.issue.id === reqSnap.id,
+  );
+  if (!already) {
+    await ref.update({ requirements: FieldValue.arrayUnion(entry) });
+  }
 
-  return NextResponse.json({ link }, { status: 201 });
+  return NextResponse.json({ link: entry }, { status: 201 });
 }

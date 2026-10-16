@@ -2,15 +2,16 @@
 
 import { useRouter } from "next/navigation";
 import { LogOut } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
+import { signOut } from "firebase/auth";
+import { getFirebaseAuth } from "@/lib/firebase/client";
 import { Button } from "@/components/ui/Button";
 
 export function LogoutButton({ compact }: { compact?: boolean }) {
   const router = useRouter();
 
   async function handleLogout() {
-    const supabase = createClient();
-    await supabase.auth.signOut();
+    await signOut(getFirebaseAuth());
+    await fetch("/api/auth/session", { method: "DELETE" });
     router.push("/login");
     router.refresh();
   }

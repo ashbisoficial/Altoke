@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { prisma } from "@/lib/prisma";
+import { adminDb } from "@/lib/firebase/admin";
+import { syncUserClaims } from "@/lib/firebase/claims";
 import { getSessionUser } from "@/lib/auth";
-import { errorResponse, forbidden, notFound, unauthorized, zodErrorResponse } from "@/lib/http";
+import { forbidden, notFound, unauthorized, zodErrorResponse } from "@/lib/http";
 import { hasProjectPermission } from "@/lib/permissions";
+import { DEFAULT_ROLES } from "@/lib/seed-defaults";
 
 const updateMemberSchema = z.object({
-  roleId: z.string().min(1),
+  roleId: z.enum(Object.keys(DEFAULT_ROLES) as [string, ...string[]]),
 });
 
 export async function PATCH(
@@ -19,27 +21,25 @@ export async function PATCH(
 
   if (!(await hasProjectPermission(user.id, projectId, "member.manage"))) return forbidden();
 
-  const member = await prisma.projectMember.findFirst({
-    where: { id: memberId, projectId },
-    include: { project: true },
-  });
-  if (!member) return notFound("Miembro");
+  const ref = adminDb.doc(`projects/${projectId}/members/${memberId}`);
+  const existing = await ref.get();
+  if (!existing.exists) return notFound("Miembro");
 
   const parsed = updateMemberSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return zodErrorResponse(parsed.error);
 
-  const role = await prisma.role.findFirst({
-    where: { id: parsed.data.roleId, organizationId: member.project.organizationId },
-  });
-  if (!role) return errorResponse(400, "Rol inválido para esta organización");
+  await ref.update({ role: parsed.data.roleId });
+  await syncUserClaims(memberId).catch((e) => console.error("syncUserClaims failed", e));
 
-  const updated = await prisma.projectMember.update({
-    where: { id: memberId },
-    data: { roleId: role.id },
-    include: { user: { select: { id: true, name: true, email: true, avatarUrl: true } }, role: true },
+  const userSnap = await adminDb.doc(`users/${memberId}`).get();
+  const u = userSnap.data();
+  return NextResponse.json({
+    member: {
+      id: memberId,
+      role: { id: parsed.data.roleId, name: parsed.data.roleId },
+      user: { id: memberId, name: u?.name ?? null, email: u?.email ?? "", avatarUrl: u?.avatarUrl ?? null },
+    },
   });
-
-  return NextResponse.json({ member: updated });
 }
 
 export async function DELETE(
@@ -52,9 +52,11 @@ export async function DELETE(
 
   if (!(await hasProjectPermission(user.id, projectId, "member.manage"))) return forbidden();
 
-  const member = await prisma.projectMember.findFirst({ where: { id: memberId, projectId } });
-  if (!member) return notFound("Miembro");
+  const ref = adminDb.doc(`projects/${projectId}/members/${memberId}`);
+  const existing = await ref.get();
+  if (!existing.exists) return notFound("Miembro");
 
-  await prisma.projectMember.delete({ where: { id: memberId } });
+  await ref.delete();
+  await syncUserClaims(memberId).catch((e) => console.error("syncUserClaims failed", e));
   return NextResponse.json({ ok: true });
 }

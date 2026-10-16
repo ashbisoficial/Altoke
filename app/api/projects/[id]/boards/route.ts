@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { prisma } from "@/lib/prisma";
+import { FieldValue } from "firebase-admin/firestore";
+import { adminDb } from "@/lib/firebase/admin";
+import { tsToISO } from "@/lib/firebase/firestore-utils";
 import { getSessionUser } from "@/lib/auth";
 import { forbidden, unauthorized, zodErrorResponse } from "@/lib/http";
 import { hasProjectPermission, isProjectMember } from "@/lib/permissions";
@@ -18,12 +20,18 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   if (!(await isProjectMember(user.id, projectId))) return forbidden();
 
   const type = request.nextUrl.searchParams.get("type");
+  let query = adminDb.collection("boards").where("projectId", "==", projectId) as FirebaseFirestore.Query;
+  if (type) query = query.where("type", "==", type);
 
-  const boards = await prisma.board.findMany({
-    where: { projectId, ...(type ? { type: type as "KANBAN" | "SCRUM" | "MURAL" } : {}) },
-    include: { _count: { select: { muralElements: true } } },
-    orderBy: { createdAt: "desc" },
-  });
+  const snap = await query.get();
+  const boards = await Promise.all(
+    snap.docs.map(async (d) => {
+      const count = await adminDb.collection(`boards/${d.id}/elements`).count().get();
+      const data = d.data();
+      return { id: d.id, ...data, createdAt: tsToISO(data.createdAt), _count: { muralElements: count.data().count } };
+    }),
+  );
+  boards.sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""));
 
   return NextResponse.json({ boards });
 }
@@ -38,6 +46,13 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const parsed = createBoardSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return zodErrorResponse(parsed.error);
 
-  const board = await prisma.board.create({ data: { projectId, ...parsed.data } });
-  return NextResponse.json({ board }, { status: 201 });
+  const ref = await adminDb.collection("boards").add({
+    projectId,
+    name: parsed.data.name,
+    type: parsed.data.type,
+    createdAt: FieldValue.serverTimestamp(),
+  });
+  const created = await ref.get();
+  const data = created.data()!;
+  return NextResponse.json({ board: { id: ref.id, ...data, createdAt: tsToISO(data.createdAt) } }, { status: 201 });
 }

@@ -1,5 +1,3 @@
-import type { Prisma, StatusCategory } from "@prisma/client";
-
 /** Global permission catalog. Keys are checked by lib/permissions.ts. */
 export const SYSTEM_PERMISSIONS = [
   { key: "org.manage", description: "Administrar la organización" },
@@ -31,6 +29,8 @@ export const DEFAULT_ROLES: Record<"Admin" | "Member" | "Viewer", SystemPermissi
   ],
   Viewer: [],
 };
+
+export type StatusCategory = "TODO" | "IN_PROGRESS" | "IN_REVIEW" | "DONE";
 
 export const DEFAULT_WORKFLOW_STATUSES: {
   name: string;
@@ -67,82 +67,3 @@ export const DEFAULT_ISSUE_TYPES: {
   { name: "Subtarea", icon: "corner-down-right", color: "#64748B", isSubtask: true },
   { name: "Caso de Prueba", icon: "flask-conical", color: "#0EA5E9" },
 ];
-
-/** Creates the Admin/Member/Viewer roles for a brand-new organization. */
-export async function createDefaultRoles(
-  tx: Prisma.TransactionClient,
-  organizationId: string,
-) {
-  await tx.permission.createMany({
-    data: SYSTEM_PERMISSIONS.map((p) => ({ key: p.key, description: p.description })),
-    skipDuplicates: true,
-  });
-  const permissions = await tx.permission.findMany();
-  const permissionByKey = new Map(permissions.map((p) => [p.key, p.id]));
-
-  const roles: Record<string, string> = {};
-  for (const [roleName, permissionKeys] of Object.entries(DEFAULT_ROLES)) {
-    const role = await tx.role.create({
-      data: {
-        name: roleName,
-        scope: "ORGANIZATION",
-        isSystem: true,
-        organizationId,
-        permissions: {
-          create: permissionKeys.map((key) => ({
-            permission: { connect: { id: permissionByKey.get(key)! } },
-          })),
-        },
-      },
-    });
-    roles[roleName] = role.id;
-  }
-  return roles;
-}
-
-/** Creates a fresh Workflow with the standard 4-status pipeline for a new project. */
-export async function createDefaultWorkflow(
-  tx: Prisma.TransactionClient,
-  organizationId: string,
-  name: string,
-) {
-  const workflow = await tx.workflow.create({
-    data: { name, organizationId },
-  });
-
-  const statusByName = new Map<string, string>();
-  for (const status of DEFAULT_WORKFLOW_STATUSES) {
-    const created = await tx.workflowStatus.create({
-      data: { ...status, workflowId: workflow.id },
-    });
-    statusByName.set(status.name, created.id);
-  }
-
-  for (const transition of DEFAULT_WORKFLOW_TRANSITIONS) {
-    await tx.workflowTransition.create({
-      data: {
-        name: transition.name,
-        workflowId: workflow.id,
-        fromStatusId: statusByName.get(transition.from)!,
-        toStatusId: statusByName.get(transition.to)!,
-      },
-    });
-  }
-
-  return { workflowId: workflow.id, initialStatusId: statusByName.get("Por hacer")! };
-}
-
-/** Creates the standard issue-type set (Epic/Story/Task/Bug/Subtask/Test Case) for a project. */
-export async function createDefaultIssueTypes(
-  tx: Prisma.TransactionClient,
-  projectId: string,
-) {
-  const types: Record<string, string> = {};
-  for (const type of DEFAULT_ISSUE_TYPES) {
-    const created = await tx.issueType.create({
-      data: { ...type, projectId },
-    });
-    types[type.name] = created.id;
-  }
-  return types;
-}

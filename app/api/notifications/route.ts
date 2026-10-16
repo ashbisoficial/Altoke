@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { adminDb } from "@/lib/firebase/admin";
+import { tsToISO } from "@/lib/firebase/firestore-utils";
 import { getSessionUser } from "@/lib/auth";
 import { unauthorized } from "@/lib/http";
 
@@ -7,14 +8,21 @@ export async function GET() {
   const user = await getSessionUser();
   if (!user) return unauthorized();
 
-  const [notifications, unreadCount] = await Promise.all([
-    prisma.notification.findMany({
-      where: { userId: user.id },
-      orderBy: { createdAt: "desc" },
-      take: 30,
-    }),
-    prisma.notification.count({ where: { userId: user.id, read: false } }),
+  const [recentSnap, unreadSnap] = await Promise.all([
+    adminDb
+      .collection("notifications")
+      .where("userId", "==", user.id)
+      .orderBy("createdAt", "desc")
+      .limit(30)
+      .get(),
+    adminDb.collection("notifications").where("userId", "==", user.id).where("read", "==", false).count().get(),
   ]);
 
-  return NextResponse.json({ notifications, unreadCount });
+  const notifications = recentSnap.docs.map((d) => ({
+    id: d.id,
+    ...d.data(),
+    createdAt: tsToISO(d.data().createdAt),
+  }));
+
+  return NextResponse.json({ notifications, unreadCount: unreadSnap.data().count });
 }

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Users } from "lucide-react";
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { adminDb } from "@/lib/firebase/admin";
 import { getSessionUser } from "@/lib/auth";
 import { CreateOrgForm } from "@/components/dashboard/CreateOrgForm";
 import { CreateProjectForm } from "@/components/dashboard/CreateProjectForm";
@@ -18,16 +18,44 @@ export default async function DashboardPage() {
   const user = await getSessionUser();
   if (!user) redirect("/login");
 
-  const organizations = await prisma.organization.findMany({
-    where: { memberships: { some: { userId: user.id } } },
-    include: {
-      projects: {
-        orderBy: { createdAt: "desc" },
-        include: { _count: { select: { issues: true } } },
-      },
-    },
-    orderBy: { createdAt: "desc" },
-  });
+  const membershipDocs = await adminDb
+    .collectionGroup("memberships")
+    .where("userId", "==", user.id)
+    .get();
+  const orgIds = membershipDocs.docs
+    .map((doc) => doc.ref.parent.parent?.id)
+    .filter((id): id is string => Boolean(id));
+
+  const orgSnaps = orgIds.length
+    ? await adminDb.getAll(...orgIds.map((id) => adminDb.doc(`organizations/${id}`)))
+    : [];
+  const existingOrgSnaps = orgSnaps.filter((s) => s.exists);
+
+  const organizations = await Promise.all(
+    existingOrgSnaps.map(async (orgSnap) => {
+      const projectsSnap = await adminDb
+        .collection("projects")
+        .where("organizationId", "==", orgSnap.id)
+        .get();
+      const projects = await Promise.all(
+        projectsSnap.docs.map(async (p) => {
+          const issueCount = await adminDb.collection("issues").where("projectId", "==", p.id).count().get();
+          const data = p.data();
+          return {
+            id: p.id,
+            name: data.name,
+            key: data.key,
+            createdAt: data.createdAt?.toDate?.() ?? new Date(0),
+            _count: { issues: issueCount.data().count },
+          };
+        }),
+      );
+      projects.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+      const data = orgSnap.data()!;
+      return { id: orgSnap.id, name: data.name, createdAt: data.createdAt?.toDate?.() ?? new Date(0), projects };
+    }),
+  );
+  organizations.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-10">
