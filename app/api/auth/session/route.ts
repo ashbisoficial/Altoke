@@ -20,7 +20,8 @@ export async function POST(request: NextRequest) {
       maxAge,
     });
     return response;
-  } catch {
+  } catch (err) {
+    console.error("createSessionCookie failed", err);
     return NextResponse.json({ error: "No se pudo crear la sesión" }, { status: 401 });
   }
 }
