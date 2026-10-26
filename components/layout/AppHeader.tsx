@@ -8,7 +8,7 @@ import { ThemeQuickSwitcher } from "@/components/theme/ThemeQuickSwitcher";
 
 export function AppHeader() {
   return (
-    <header className="sticky top-0 z-10 flex h-14 items-center gap-2 border-b border-border bg-surface px-4">
+    <header className="shadow-soft sticky top-0 z-10 flex h-14 items-center gap-2 border-b border-border bg-surface/85 px-4 backdrop-blur-md">
       <Link href="/dashboard" className="flex shrink-0 items-center gap-2">
         <LogoMark size="sm" />
         <span className="hidden font-heading text-lg font-semibold sm:inline">Altoke</span>

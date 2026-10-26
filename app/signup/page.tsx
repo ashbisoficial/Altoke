@@ -7,7 +7,7 @@ import { getFirebaseAuth } from "@/lib/firebase/client";
 import { firebaseErrorMessage } from "@/lib/firebase/errors";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { Logo } from "@/components/layout/Logo";
+import { AuthShell } from "@/components/layout/AuthShell";
 
 export default function SignupPage() {
   const [name, setName] = useState("");
@@ -43,11 +43,7 @@ export default function SignupPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-bg px-4">
-      <div className="w-full max-w-sm rounded-xl border border-border bg-surface p-8 shadow-soft">
-        <Logo size="lg" />
-        <p className="mt-3 text-sm text-ink/60">Empieza a usar Altoke gratis</p>
-
+    <AuthShell tagline="Empieza a usar Altoke gratis">
         {done ? (
           <p className="mt-6 text-sm text-ink/70">
             Revisa tu correo <strong>{email}</strong> para confirmar tu cuenta.
@@ -101,7 +97,6 @@ export default function SignupPage() {
             Inicia sesión
           </Link>
         </p>
-      </div>
-    </main>
+    </AuthShell>
   );
 }

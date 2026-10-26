@@ -8,7 +8,7 @@ import { getFirebaseAuth } from "@/lib/firebase/client";
 import { firebaseErrorMessage } from "@/lib/firebase/errors";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { Logo } from "@/components/layout/Logo";
+import { AuthShell } from "@/components/layout/AuthShell";
 
 const EMAIL_FOR_SIGN_IN_KEY = "altoke:emailForSignIn";
 
@@ -83,11 +83,7 @@ function LoginForm() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-bg px-4">
-      <div className="w-full max-w-sm rounded-xl border border-border bg-surface p-8 shadow-soft">
-        <Logo size="lg" />
-        <p className="mt-3 text-sm text-ink/60">Inicia sesión para continuar</p>
-
+    <AuthShell tagline="Inicia sesión para continuar">
         <div className="mt-6 flex gap-2 rounded-lg border border-border p-1 text-sm">
           <button
             type="button"
@@ -164,7 +160,6 @@ function LoginForm() {
             Regístrate
           </Link>
         </p>
-      </div>
-    </main>
+    </AuthShell>
   );
 }
