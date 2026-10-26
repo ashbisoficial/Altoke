@@ -40,8 +40,12 @@ function MicrosoftIcon() {
 const PROVIDERS = [
   { id: "google", label: "Google", Icon: GoogleIcon, make: () => new GoogleAuthProvider() },
   { id: "github", label: "GitHub", Icon: GithubIcon, make: () => new GithubAuthProvider() },
+  // Microsoft: desactivado hasta tener una app registrada en Entra ID —
+  // reactivar agregándolo de vuelta a ACTIVE_PROVIDER_IDS abajo.
   { id: "microsoft", label: "Microsoft", Icon: MicrosoftIcon, make: () => new OAuthProvider("microsoft.com") },
 ] as const;
+
+const ACTIVE_PROVIDER_IDS: ReadonlySet<string> = new Set(["google", "github"]);
 
 /** Google / GitHub / Microsoft sign-in — shared by /login and /signup since
  *  both just need a Firebase ID token handed to the same session endpoint. */
@@ -76,7 +80,7 @@ export function SocialAuthButtons({ next, onError }: { next: string; onError: (m
 
   return (
     <div className="flex flex-col gap-2">
-      {PROVIDERS.map(({ id, label, Icon, make }) => (
+      {PROVIDERS.filter((p) => ACTIVE_PROVIDER_IDS.has(p.id)).map(({ id, label, Icon, make }) => (
         <button
           key={id}
           type="button"
