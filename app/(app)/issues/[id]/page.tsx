@@ -1,8 +1,9 @@
 import { notFound, redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { adminDb } from "@/lib/firebase/admin";
+import { tsToISO } from "@/lib/firebase/firestore-utils";
 import { getSessionUser } from "@/lib/auth";
 import { isProjectMember } from "@/lib/permissions";
-import { IssueDetail } from "@/components/issue/IssueDetail";
+import { IssueDetail, type IssueDetailData, type IssueDetailProject } from "@/components/issue/IssueDetail";
 
 export default async function IssueDetailPage({
   params,
@@ -14,60 +15,123 @@ export default async function IssueDetailPage({
 
   const { id } = await params;
 
-  const issue = await prisma.issue.findUnique({
-    where: { id },
-    include: {
-      issueType: true,
-      status: true,
-      assignee: { select: { id: true, name: true, email: true, avatarUrl: true } },
-      reporter: { select: { id: true, name: true, email: true, avatarUrl: true } },
-      labels: { include: { label: true } },
-      comments: {
-        include: { author: { select: { id: true, name: true, email: true, avatarUrl: true } } },
-        orderBy: { createdAt: "asc" },
-      },
-      attachments: { orderBy: { createdAt: "desc" } },
-      children: { include: { issueType: true, status: true }, orderBy: { number: "asc" } },
-      parent: { select: { id: true, key: true, title: true } },
-      linksFrom: {
-        include: { target: { select: { id: true, key: true, title: true } } },
-        orderBy: { createdAt: "asc" },
-      },
-      linksTo: {
-        include: { source: { select: { id: true, key: true, title: true } } },
-        orderBy: { createdAt: "asc" },
-      },
-      activity: {
-        include: { actor: { select: { id: true, name: true, email: true, avatarUrl: true } } },
-        orderBy: { createdAt: "desc" },
-        take: 30,
-      },
-    },
-  });
-  if (!issue) notFound();
-  if (!(await isProjectMember(user.id, issue.projectId))) notFound();
+  const issueRef = adminDb.doc(`issues/${id}`);
+  const issueSnap = await issueRef.get();
+  if (!issueSnap.exists) notFound();
+  const issueData = issueSnap.data()!;
+  if (!(await isProjectMember(user.id, issueData.projectId))) notFound();
 
-  const project = await prisma.project.findUniqueOrThrow({
-    where: { id: issue.projectId },
-    include: {
-      issueTypes: true,
-      sprints: { orderBy: { createdAt: "desc" } },
-      members: { include: { user: { select: { id: true, name: true, email: true, avatarUrl: true } } } },
-      workflow: { include: { statuses: { orderBy: { order: "asc" } }, transitions: true } },
-      labels: { orderBy: { name: "asc" } },
-    },
-  });
+  const [
+    commentsSnap,
+    attachmentsSnap,
+    childrenSnap,
+    parentSnap,
+    linksFromSnap,
+    linksToSnap,
+    activitySnap,
+    projectSnap,
+    issueTypesSnap,
+    sprintsSnap,
+    membersSnap,
+    labelsSnap,
+    otherIssuesSnap,
+  ] = await Promise.all([
+    adminDb.collection("comments").where("issueId", "==", id).orderBy("createdAt", "asc").get(),
+    adminDb.collection("attachments").where("issueId", "==", id).orderBy("createdAt", "desc").get(),
+    adminDb.collection("issues").where("parentId", "==", id).orderBy("number", "asc").get(),
+    issueData.parentId ? adminDb.doc(`issues/${issueData.parentId}`).get() : Promise.resolve(null),
+    adminDb.collection("issueLinks").where("sourceId", "==", id).orderBy("createdAt", "asc").get(),
+    adminDb.collection("issueLinks").where("targetId", "==", id).orderBy("createdAt", "asc").get(),
+    issueRef.collection("activity").orderBy("createdAt", "desc").limit(30).get(),
+    adminDb.doc(`projects/${issueData.projectId}`).get(),
+    adminDb.collection(`projects/${issueData.projectId}/issueTypes`).get(),
+    adminDb.collection("sprints").where("projectId", "==", issueData.projectId).orderBy("createdAt", "desc").get(),
+    adminDb.collection(`projects/${issueData.projectId}/members`).get(),
+    adminDb.collection("labels").where("projectId", "==", issueData.projectId).get(),
+    adminDb.collection("issues").where("projectId", "==", issueData.projectId).orderBy("number", "asc").get(),
+  ]);
 
-  const otherIssues = await prisma.issue.findMany({
-    where: { projectId: issue.projectId, id: { not: issue.id } },
-    select: { id: true, key: true, title: true },
-    orderBy: { number: "asc" },
-  });
+  const memberUserIds = membersSnap.docs.map((d) => d.id);
+  const memberUserSnaps = memberUserIds.length
+    ? await adminDb.getAll(...memberUserIds.map((uid) => adminDb.doc(`users/${uid}`)))
+    : [];
+  const userById = new Map(memberUserSnaps.filter((s) => s.exists).map((s) => [s.id, s.data()!]));
+
+  const dueDateIso = tsToISO(issueData.dueDate);
+  // Build only plain fields below — Firestore Timestamp instances
+  // (createdAt/updatedAt and friends) can't cross the server->client RSC
+  // boundary as props, so every doc read here is picked apart field by
+  // field rather than spread wholesale.
+  const issueFields = { ...issueData };
+  delete issueFields.createdAt;
+  delete issueFields.updatedAt;
+
+  const issue = {
+    id,
+    ...issueFields,
+    dueDate: dueDateIso ? new Date(dueDateIso) : null,
+    comments: commentsSnap.docs.map((d) => {
+      const data = d.data();
+      const createdAtIso = tsToISO(data.createdAt);
+      return {
+        id: d.id,
+        body: data.body,
+        author: data.author,
+        createdAt: createdAtIso ? new Date(createdAtIso) : new Date(),
+      };
+    }),
+    attachments: attachmentsSnap.docs.map((d) => {
+      const data = d.data();
+      return { id: d.id, fileName: data.fileName, fileUrl: data.fileUrl, fileSize: data.fileSize, uploaderId: data.uploaderId };
+    }),
+    children: childrenSnap.docs.map((d) => {
+      const data = d.data();
+      return { id: d.id, key: data.key, title: data.title, issueType: data.issueType, status: data.status };
+    }),
+    parent: parentSnap?.exists ? { id: parentSnap.id, key: parentSnap.data()!.key, title: parentSnap.data()!.title } : null,
+    linksFrom: linksFromSnap.docs.map((d) => ({ id: d.id, type: d.data().type, target: d.data().target })),
+    linksTo: linksToSnap.docs.map((d) => ({ id: d.id, type: d.data().type, source: d.data().source })),
+    activity: activitySnap.docs.map((d) => {
+      const data = d.data();
+      const createdAtIso = tsToISO(data.createdAt);
+      return {
+        id: d.id,
+        field: data.field,
+        fromLabel: data.fromLabel,
+        toLabel: data.toLabel,
+        actor: data.actor,
+        createdAt: createdAtIso ? new Date(createdAtIso) : new Date(),
+      };
+    }),
+  };
+
+  const workflow = projectSnap.data()?.workflow ?? { statuses: [], transitions: [] };
+
+  const project = {
+    id: issueData.projectId,
+    key: projectSnap.data()?.key,
+    name: projectSnap.data()?.name,
+    issueTypes: issueTypesSnap.docs.map((d) => ({ id: d.id, ...d.data() })),
+    sprints: sprintsSnap.docs.map((d) => ({ id: d.id, name: d.data().name, status: d.data().status })),
+    members: membersSnap.docs.map((d) => {
+      const u = userById.get(d.id);
+      return { user: { id: d.id, name: u?.name ?? null, email: u?.email ?? "", avatarUrl: u?.avatarUrl ?? null } };
+    }),
+    workflow: {
+      statuses: [...(workflow.statuses ?? [])].sort((a: { order: number }, b: { order: number }) => a.order - b.order),
+      transitions: workflow.transitions ?? [],
+    },
+    labels: labelsSnap.docs.map((d) => ({ id: d.id, ...d.data() })),
+  };
+
+  const otherIssues = otherIssuesSnap.docs
+    .filter((d) => d.id !== id)
+    .map((d) => ({ id: d.id, key: d.data().key, title: d.data().title }));
 
   return (
     <IssueDetail
-      issue={issue}
-      project={project}
+      issue={issue as unknown as IssueDetailData}
+      project={project as unknown as IssueDetailProject}
       currentUserId={user.id}
       otherIssues={otherIssues}
     />

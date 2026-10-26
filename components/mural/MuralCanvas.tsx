@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -18,8 +18,9 @@ import {
   Trash2,
   Type as TypeIcon,
 } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
-import { uploadMuralImage } from "@/lib/supabase/storage";
+import { collection, onSnapshot, query, where } from "firebase/firestore";
+import { getFirebaseDb } from "@/lib/firebase/client";
+import { uploadMuralImage } from "@/lib/firebase/storage";
 import { MuralElementView } from "./MuralElementView";
 import { STICKY_COLORS, type MuralElementData, type MuralElementType } from "./types";
 
@@ -108,34 +109,32 @@ export function MuralCanvas({
   const [liveStroke, setLiveStroke] = useState<{ x: number; y: number }[] | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const channelRef = useRef<ReturnType<ReturnType<typeof createClient>["channel"]> | null>(null);
-
+  // Writes go through the API routes (Admin SDK); every client — including
+  // this one — picks up the result here, so there's no separate broadcast
+  // step like the old Supabase Realtime channel needed.
   useEffect(() => {
-    const supabase = createClient();
-    const channel = supabase.channel(`mural:${boardId}`, { config: { broadcast: { self: false } } });
-    channel
-      .on("broadcast", { event: "upsert" }, ({ payload }) => {
-        const el = payload as MuralElementData;
-        setElements((prev) => {
-          const exists = prev.some((e) => e.id === el.id);
-          return exists ? prev.map((e) => (e.id === el.id ? el : e)) : [...prev, el];
+    const db = getFirebaseDb();
+    const elementsQuery = query(collection(db, "muralElements"), where("boardId", "==", boardId));
+    const unsubscribe = onSnapshot(
+      elementsQuery,
+      (snapshot) => {
+        snapshot.docChanges().forEach((change) => {
+          if (change.type === "removed") {
+            setElements((prev) => prev.filter((e) => e.id !== change.doc.id));
+            setSelectedId((s) => (s === change.doc.id ? null : s));
+            return;
+          }
+          const el = { id: change.doc.id, ...change.doc.data() } as MuralElementData;
+          setElements((prev) => {
+            const exists = prev.some((e) => e.id === el.id);
+            return exists ? prev.map((e) => (e.id === el.id ? el : e)) : [...prev, el];
+          });
         });
-      })
-      .on("broadcast", { event: "delete" }, ({ payload }) => {
-        const { id } = payload as { id: string };
-        setElements((prev) => prev.filter((e) => e.id !== id));
-        setSelectedId((s) => (s === id ? null : s));
-      })
-      .subscribe();
-    channelRef.current = channel;
-    return () => {
-      supabase.removeChannel(channel);
-    };
+      },
+      (err) => setError(err.message),
+    );
+    return unsubscribe;
   }, [boardId]);
-
-  const broadcast = useCallback((event: "upsert" | "delete", payload: unknown) => {
-    channelRef.current?.send({ type: "broadcast", event, payload });
-  }, []);
 
   const nextZIndex = useMemo(
     () => (elements.length === 0 ? 1 : Math.max(...elements.map((e) => e.zIndex)) + 1),
@@ -174,7 +173,6 @@ export function MuralCanvas({
         body: JSON.stringify(base),
       });
       setElements((prev) => [...prev, element]);
-      broadcast("upsert", element);
       setSelectedId(element.id);
     } catch (e) {
       setError(e instanceof Error ? e.message : "No se pudo crear el elemento");
@@ -219,15 +217,14 @@ export function MuralCanvas({
     }
   }
 
-  async function updateElement(id: string, data: Partial<MuralElementData>, andBroadcast = true) {
+  async function updateElement(id: string, data: Partial<MuralElementData>, persist = true) {
     setElements((prev) => prev.map((e) => (e.id === id ? { ...e, ...data } : e)));
-    if (!andBroadcast) return;
+    if (!persist) return;
     try {
-      const { element } = await api(`/api/mural-elements/${id}`, {
+      await api(`/api/mural-elements/${id}`, {
         method: "PATCH",
         body: JSON.stringify(data),
       });
-      broadcast("upsert", element);
     } catch (e) {
       setError(e instanceof Error ? e.message : "No se pudo guardar el cambio");
     }
@@ -239,7 +236,6 @@ export function MuralCanvas({
     setSelectedId(null);
     setElements((prev) => prev.filter((e) => e.id !== id));
     await api(`/api/mural-elements/${id}`, { method: "DELETE" }).catch(() => {});
-    broadcast("delete", { id });
   }
 
   function reorder(direction: "front" | "back") {

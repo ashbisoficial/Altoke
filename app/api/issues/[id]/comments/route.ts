@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { prisma } from "@/lib/prisma";
+import { FieldValue } from "firebase-admin/firestore";
+import { adminDb } from "@/lib/firebase/admin";
+import { tsToISO } from "@/lib/firebase/firestore-utils";
 import { getSessionUser } from "@/lib/auth";
 import { forbidden, notFound, unauthorized, zodErrorResponse } from "@/lib/http";
 import { isProjectMember } from "@/lib/permissions";
@@ -15,19 +17,22 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   if (!user) return unauthorized();
   const { id } = await params;
 
-  const issue = await prisma.issue.findUnique({
-    where: { id },
-    select: { projectId: true, key: true, title: true, assigneeId: true, reporterId: true },
-  });
-  if (!issue) return notFound("Incidencia");
+  const issueRef = adminDb.doc(`issues/${id}`);
+  const issueSnap = await issueRef.get();
+  if (!issueSnap.exists) return notFound("Incidencia");
+  const issue = issueSnap.data()!;
   if (!(await isProjectMember(user.id, issue.projectId))) return forbidden();
 
   const parsed = createCommentSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return zodErrorResponse(parsed.error);
 
-  const comment = await prisma.comment.create({
-    data: { issueId: id, authorId: user.id, body: parsed.data.body },
-    include: { author: { select: { id: true, name: true, email: true, avatarUrl: true } } },
+  const author = { id: user.id, name: user.name, email: user.email, avatarUrl: user.avatarUrl };
+  const commentRef = await adminDb.collection("comments").add({
+    issueId: id,
+    authorId: user.id,
+    author,
+    body: parsed.data.body,
+    createdAt: FieldValue.serverTimestamp(),
   });
 
   const notifyUserIds = new Set([issue.assigneeId, issue.reporterId].filter((v): v is string => !!v));
@@ -42,5 +47,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     });
   }
 
-  return NextResponse.json({ comment }, { status: 201 });
+  const created = await commentRef.get();
+  return NextResponse.json(
+    { comment: { id: commentRef.id, ...created.data(), createdAt: tsToISO(created.data()!.createdAt) } },
+    { status: 201 },
+  );
 }

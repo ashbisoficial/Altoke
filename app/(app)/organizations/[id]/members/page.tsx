@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { prisma } from "@/lib/prisma";
+import { adminDb } from "@/lib/firebase/admin";
 import { getSessionUser } from "@/lib/auth";
 import { hasOrgPermission, isOrgMember } from "@/lib/permissions";
+import { DEFAULT_ROLES } from "@/lib/seed-defaults";
 import { OrgMembersManager } from "@/components/organizations/OrgMembersManager";
 
 export default async function OrganizationMembersPage({ params }: { params: Promise<{ id: string }> }) {
@@ -13,27 +14,61 @@ export default async function OrganizationMembersPage({ params }: { params: Prom
   const { id: organizationId } = await params;
   if (!(await isOrgMember(user.id, organizationId))) notFound();
 
-  const [organization, memberships, invitations, roles, projects, canManage] = await Promise.all([
-    prisma.organization.findUnique({ where: { id: organizationId } }),
-    prisma.membership.findMany({
-      where: { organizationId },
-      include: { user: { select: { id: true, name: true, email: true } }, role: true },
-      orderBy: { createdAt: "asc" },
-    }),
-    prisma.invitation.findMany({
-      where: { organizationId, status: "PENDING" },
-      include: {
-        orgRole: { select: { name: true } },
-        project: { select: { id: true, name: true } },
-        invitedBy: { select: { name: true, email: true } },
-      },
-      orderBy: { createdAt: "desc" },
-    }),
-    prisma.role.findMany({ where: { organizationId }, orderBy: { name: "asc" } }),
-    prisma.project.findMany({ where: { organizationId }, select: { id: true, name: true } }),
+  const orgSnap = await adminDb.doc(`organizations/${organizationId}`).get();
+  if (!orgSnap.exists) notFound();
+  const organization = orgSnap.data()!;
+
+  const [membershipsSnap, invitationsSnap, projectsSnap, canManage] = await Promise.all([
+    adminDb.collection(`organizations/${organizationId}/memberships`).orderBy("createdAt", "asc").get(),
+    adminDb
+      .collection("invitations")
+      .where("organizationId", "==", organizationId)
+      .where("status", "==", "PENDING")
+      .orderBy("createdAt", "desc")
+      .get(),
+    adminDb.collection("projects").where("organizationId", "==", organizationId).get(),
     hasOrgPermission(user.id, organizationId, "member.manage"),
   ]);
-  if (!organization) notFound();
+
+  const memberUserIds = membershipsSnap.docs.map((d) => d.id);
+  const memberUserSnaps = memberUserIds.length
+    ? await adminDb.getAll(...memberUserIds.map((id) => adminDb.doc(`users/${id}`)))
+    : [];
+  const userById = new Map(memberUserSnaps.filter((s) => s.exists).map((s) => [s.id, s.data()!]));
+
+  const memberships = membershipsSnap.docs.map((d) => {
+    const u = userById.get(d.id);
+    const role = d.data().role as string;
+    return {
+      id: d.id,
+      role: { id: role, name: role },
+      user: { id: d.id, name: u?.name ?? null, email: u?.email ?? "" },
+    };
+  });
+
+  const inviterIds = [...new Set(invitationsSnap.docs.map((d) => d.data().invitedById))] as string[];
+  const inviterSnaps = inviterIds.length
+    ? await adminDb.getAll(...inviterIds.map((id) => adminDb.doc(`users/${id}`)))
+    : [];
+  const inviterById = new Map(inviterSnaps.filter((s) => s.exists).map((s) => [s.id, s.data()!]));
+
+  const invitations = invitationsSnap.docs.map((d) => {
+    const data = d.data();
+    const inviter = inviterById.get(data.invitedById);
+    return {
+      id: d.id,
+      token: d.id,
+      email: data.email,
+      status: data.status,
+      emailSent: data.emailSent,
+      orgRole: { name: data.orgRoleId },
+      project: null as { id: string; name: string } | null,
+      invitedBy: { name: inviter?.name ?? null, email: inviter?.email ?? "" },
+    };
+  });
+
+  const roles = Object.keys(DEFAULT_ROLES).map((name) => ({ id: name, name }));
+  const projects = projectsSnap.docs.map((d) => ({ id: d.id, name: d.data().name as string }));
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-6">
@@ -49,10 +84,10 @@ export default async function OrganizationMembersPage({ params }: { params: Prom
       </header>
 
       <OrgMembersManager
-        organizationId={organization.id}
+        organizationId={organizationId}
         members={memberships}
         invitations={invitations}
-        roles={roles.map((r) => ({ id: r.id, name: r.name }))}
+        roles={roles}
         projects={projects}
         canManage={canManage}
         currentUserId={user.id}

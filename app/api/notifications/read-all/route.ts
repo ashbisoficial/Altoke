@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { adminDb } from "@/lib/firebase/admin";
 import { getSessionUser } from "@/lib/auth";
 import { unauthorized } from "@/lib/http";
 
@@ -7,6 +7,15 @@ export async function POST() {
   const user = await getSessionUser();
   if (!user) return unauthorized();
 
-  await prisma.notification.updateMany({ where: { userId: user.id, read: false }, data: { read: true } });
+  const unreadSnap = await adminDb
+    .collection("notifications")
+    .where("userId", "==", user.id)
+    .where("read", "==", false)
+    .get();
+
+  const batch = adminDb.batch();
+  unreadSnap.docs.forEach((doc) => batch.update(doc.ref, { read: true }));
+  await batch.commit();
+
   return NextResponse.json({ ok: true });
 }

@@ -1,10 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { prisma } from "@/lib/prisma";
+import { FieldValue } from "firebase-admin/firestore";
+import { adminDb } from "@/lib/firebase/admin";
+import { tsToISO } from "@/lib/firebase/firestore-utils";
 import { getSessionUser } from "@/lib/auth";
 import { errorResponse, forbidden, notFound, unauthorized, zodErrorResponse } from "@/lib/http";
 import { hasProjectPermission, isProjectMember } from "@/lib/permissions";
 
+/**
+ * A test case IS an issue (issueType "Caso de Prueba") plus a testCases/{id}
+ * doc holding the Xray-specific fields — the testCases doc id is the same
+ * as the issue id (they're 1:1, so no separate id is needed).
+ */
 const stepSchema = z.object({
   step: z.string().trim().min(1).max(2000),
   expectedResult: z.string().trim().max(2000).optional(),
@@ -24,15 +31,19 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
 
   if (!(await isProjectMember(user.id, projectId))) return forbidden();
 
-  const testCases = await prisma.testCase.findMany({
-    where: { issue: { projectId } },
-    include: {
-      issue: { select: { id: true, key: true, title: true } },
-      requirements: { include: { issue: { select: { id: true, key: true, title: true } } } },
-      _count: { select: { runs: true } },
-    },
-    orderBy: { createdAt: "desc" },
-  });
+  const snap = await adminDb.collection("testCases").where("projectId", "==", projectId).get();
+  const testCases = snap.docs
+    .map((d) => {
+      const data = d.data();
+      return {
+        id: d.id,
+        issue: data.issue,
+        requirements: (data.requirements ?? []) as { issue: { id: string; key: string; title: string } }[],
+        runs: [{ status: data.lastRunStatus ?? "NOT_RUN" }],
+        createdAt: tsToISO(data.createdAt),
+      };
+    })
+    .sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""));
 
   return NextResponse.json({ testCases });
 }
@@ -44,70 +55,101 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
   if (!(await hasProjectPermission(user.id, projectId, "testing.manage"))) return forbidden();
 
-  const project = await prisma.project.findUnique({
-    where: { id: projectId },
-    include: { workflow: { include: { statuses: true } } },
-  });
-  if (!project) return notFound("Proyecto");
+  const projectSnap = await adminDb.doc(`projects/${projectId}`).get();
+  if (!projectSnap.exists) return notFound("Proyecto");
+  const project = projectSnap.data()!;
 
   const parsed = createTestCaseSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return zodErrorResponse(parsed.error);
   const { title, preconditions, steps, requirementIds } = parsed.data;
 
-  const testCaseType = await prisma.issueType.findFirst({
-    where: { projectId, name: "Caso de Prueba" },
-  });
-  if (!testCaseType) {
+  const issueTypeSnap = await adminDb
+    .collection(`projects/${projectId}/issueTypes`)
+    .where("name", "==", "Caso de Prueba")
+    .limit(1)
+    .get();
+  if (issueTypeSnap.empty) {
     return errorResponse(500, "El proyecto no tiene el tipo 'Caso de Prueba' configurado");
   }
+  const issueType = issueTypeSnap.docs[0];
 
-  const initialStatus =
-    project.workflow.statuses.find((s) => s.isInitial) ?? project.workflow.statuses[0];
+  const statuses = (project.workflow?.statuses ?? []) as { id: string; isInitial?: boolean }[];
+  const initialStatus = statuses.find((s) => s.isInitial) ?? statuses[0];
   if (!initialStatus) return errorResponse(500, "El proyecto no tiene un flujo de trabajo válido");
 
+  let requirements: { issue: { id: string; key: string; title: string } }[] = [];
   if (requirementIds && requirementIds.length > 0) {
-    const requirementCount = await prisma.issue.count({
-      where: { id: { in: requirementIds }, projectId },
-    });
-    if (requirementCount !== requirementIds.length) {
+    const reqSnaps = await adminDb.getAll(...requirementIds.map((id) => adminDb.doc(`issues/${id}`)));
+    if (reqSnaps.some((s) => !s.exists || s.data()!.projectId !== projectId)) {
       return errorResponse(400, "Alguno de los requisitos no pertenece a este proyecto");
     }
+    requirements = reqSnaps.map((s) => ({
+      issue: { id: s.id, key: s.data()!.key, title: s.data()!.title },
+    }));
   }
 
-  const testCase = await prisma.$transaction(async (tx) => {
-    const updatedProject = await tx.project.update({
-      where: { id: projectId },
-      data: { issueCounter: { increment: 1 } },
-    });
-    const number = updatedProject.issueCounter;
+  const [reporterSnap] = await Promise.all([adminDb.doc(`users/${user.id}`).get()]);
+  const issueRef = adminDb.collection("issues").doc();
 
-    const issue = await tx.issue.create({
-      data: {
-        projectId,
-        number,
-        key: `${updatedProject.key}-${number}`,
-        issueTypeId: testCaseType.id,
-        title,
-        statusId: initialStatus.id,
-        reporterId: user.id,
-      },
-    });
+  await adminDb.runTransaction(async (tx) => {
+    const freshProject = await tx.get(adminDb.doc(`projects/${projectId}`));
+    const number = (freshProject.data()!.issueCounter ?? 0) + 1;
+    tx.update(adminDb.doc(`projects/${projectId}`), { issueCounter: number });
 
-    return tx.testCase.create({
-      data: {
-        issueId: issue.id,
-        preconditions,
-        steps,
-        requirements: requirementIds
-          ? { create: requirementIds.map((issueId) => ({ issueId })) }
-          : undefined,
+    const issueData = {
+      organizationId: project.organizationId,
+      projectId,
+      number,
+      key: `${project.key}-${number}`,
+      issueTypeId: issueType.id,
+      issueType: { id: issueType.id, name: issueType.data().name, color: issueType.data().color ?? null },
+      title,
+      description: null,
+      priority: "MEDIUM",
+      statusId: initialStatus.id,
+      status: initialStatus,
+      assigneeId: null,
+      assignee: null,
+      reporterId: user.id,
+      reporter: {
+        id: user.id,
+        name: reporterSnap.data()?.name ?? null,
+        email: reporterSnap.data()?.email,
+        avatarUrl: reporterSnap.data()?.avatarUrl ?? null,
       },
-      include: {
-        issue: { select: { id: true, key: true, title: true } },
-        requirements: { include: { issue: { select: { id: true, key: true, title: true } } } },
-      },
+      parentId: null,
+      sprintId: null,
+      storyPoints: null,
+      dueDate: null,
+      labels: [],
+      childCount: 0,
+      createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+    };
+    tx.set(issueRef, issueData);
+    tx.set(adminDb.doc(`testCases/${issueRef.id}`), {
+      projectId,
+      preconditions: preconditions ?? null,
+      steps,
+      requirements,
+      lastRunStatus: "NOT_RUN",
+      issue: { id: issueRef.id, key: issueData.key, title },
+      createdAt: FieldValue.serverTimestamp(),
     });
   });
 
-  return NextResponse.json({ testCase }, { status: 201 });
+  const created = await adminDb.doc(`testCases/${issueRef.id}`).get();
+  const data = created.data()!;
+  return NextResponse.json(
+    {
+      testCase: {
+        id: issueRef.id,
+        preconditions: data.preconditions,
+        steps: data.steps,
+        issue: data.issue,
+        requirements: data.requirements,
+      },
+    },
+    { status: 201 },
+  );
 }

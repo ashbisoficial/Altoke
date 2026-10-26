@@ -1,5 +1,6 @@
 import { notFound, redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { adminDb } from "@/lib/firebase/admin";
+import { tsToISO } from "@/lib/firebase/firestore-utils";
 import { getSessionUser } from "@/lib/auth";
 import { isProjectMember } from "@/lib/permissions";
 import { BacklogBoard } from "@/components/backlog/BacklogBoard";
@@ -17,48 +18,52 @@ export default async function BacklogPage({
   if (!projectId) notFound();
   if (!(await isProjectMember(user.id, projectId))) notFound();
 
-  const project = await prisma.project.findUnique({
-    where: { id: projectId },
-    include: { sprints: { orderBy: { createdAt: "asc" } } },
-  });
-  if (!project) notFound();
+  const projectSnap = await adminDb.doc(`projects/${projectId}`).get();
+  if (!projectSnap.exists) notFound();
+  const project = projectSnap.data()!;
 
-  const issues = await prisma.issue.findMany({
-    where: { projectId, parentId: null },
-    include: {
-      issueType: { select: { name: true, color: true } },
-      status: { select: { name: true, color: true, category: true } },
-      assignee: { select: { name: true, email: true } },
-    },
-    orderBy: { number: "asc" },
-  });
+  const [sprintsSnap, issuesSnap] = await Promise.all([
+    adminDb.collection("sprints").where("projectId", "==", projectId).orderBy("createdAt", "asc").get(),
+    adminDb.collection("issues").where("projectId", "==", projectId).where("parentId", "==", null).get(),
+  ]);
+
+  const issues = issuesSnap.docs
+    .map((d) => {
+      const data = d.data();
+      return {
+        id: d.id,
+        key: data.key,
+        title: data.title,
+        sprintId: data.sprintId,
+        storyPoints: data.storyPoints,
+        issueType: data.issueType,
+        status: data.status,
+        assignee: data.assignee,
+        number: data.number as number,
+      };
+    })
+    .sort((a, b) => a.number - b.number);
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-6">
       <header className="mb-5 flex flex-col gap-3">
         <h1 className="font-heading text-2xl font-semibold">Backlog — {project.name}</h1>
-        <ProjectNav projectId={project.id} active="backlog" />
+        <ProjectNav projectId={projectId} active="backlog" />
       </header>
 
       <BacklogBoard
-        projectId={project.id}
-        sprints={project.sprints.map((s) => ({
-          id: s.id,
-          name: s.name,
-          status: s.status,
-          startDate: s.startDate?.toISOString() ?? null,
-          endDate: s.endDate?.toISOString() ?? null,
-        }))}
-        initialIssues={issues.map((issue) => ({
-          id: issue.id,
-          key: issue.key,
-          title: issue.title,
-          sprintId: issue.sprintId,
-          storyPoints: issue.storyPoints,
-          issueType: issue.issueType,
-          status: issue.status,
-          assignee: issue.assignee,
-        }))}
+        projectId={projectId}
+        sprints={sprintsSnap.docs.map((d) => {
+          const data = d.data();
+          return {
+            id: d.id,
+            name: data.name,
+            status: data.status,
+            startDate: tsToISO(data.startDate),
+            endDate: tsToISO(data.endDate),
+          };
+        })}
+        initialIssues={issues}
       />
     </main>
   );

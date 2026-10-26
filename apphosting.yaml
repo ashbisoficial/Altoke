@@ -1,0 +1,57 @@
+# Firebase App Hosting — build/runtime config for Next.js SSR.
+# https://firebase.google.com/docs/app-hosting/configure
+#
+# The NEXT_PUBLIC_* values below are the Firebase client config — public by
+# design (they ship in the browser bundle either way), safe to commit.
+#
+# FIREBASE_CLIENT_EMAIL / FIREBASE_PRIVATE_KEY / RESEND_API_KEY are
+# referenced here by name (not value) from Secret Manager, RUNTIME-only
+# (firebase-admin only runs server-side, never during `next build`).
+# The secret *values* are created/edited in Firebase Console → App Hosting
+# → backend → Entorno → Secrets (or `firebase apphosting:secrets:set`).
+# Declaring them here, instead of only adding them ad hoc from the
+# console, is what makes a push grant the backend's service account
+# (firebase-app-hosting-compute@<project>.iam.gserviceaccount.com) access
+# to them automatically.
+
+runConfig:
+  minInstances: 0
+  maxInstances: 1
+  concurrency: 80
+  cpu: 1
+  memoryMiB: 512
+
+env:
+  - variable: NEXT_PUBLIC_FIREBASE_API_KEY
+    value: "AIzaSyDdJfrttg3harT5nmLguzQpsJCT4GCk15Y"
+    availability: [BUILD, RUNTIME]
+  - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+    value: "altoke-ashbis.firebaseapp.com"
+    availability: [BUILD, RUNTIME]
+  - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
+    value: "altoke-ashbis"
+    availability: [BUILD, RUNTIME]
+  - variable: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+    value: "altoke-ashbis.firebasestorage.app"
+    availability: [BUILD, RUNTIME]
+  - variable: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+    value: "90134404607"
+    availability: [BUILD, RUNTIME]
+  - variable: NEXT_PUBLIC_FIREBASE_APP_ID
+    value: "1:90134404607:web:b7da574a3821de77af1bca"
+    availability: [BUILD, RUNTIME]
+  - variable: FIREBASE_PROJECT_ID
+    value: "altoke-ashbis"
+    availability: [RUNTIME]
+  - variable: NEXT_PUBLIC_SITE_URL
+    value: "https://altoke--altoke-ashbis.us-east4.hosted.app"
+    availability: [BUILD, RUNTIME]
+  - variable: FIREBASE_CLIENT_EMAIL
+    secret: FIREBASE_CLIENT_EMAIL
+    availability: [RUNTIME]
+  - variable: FIREBASE_PRIVATE_KEY
+    secret: FIREBASE_PRIVATE_KEY
+    availability: [RUNTIME]
+  # RESEND_API_KEY: opcional. Sumalo acá (misma forma que los dos de
+  # arriba) solo después de crear ese secreto con un valor real — si no
+  # existe en Secret Manager, declararlo rompe el deploy.

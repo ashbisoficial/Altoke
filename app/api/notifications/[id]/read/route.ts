@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { adminDb } from "@/lib/firebase/admin";
 import { getSessionUser } from "@/lib/auth";
 import { notFound, unauthorized } from "@/lib/http";
 
@@ -8,9 +8,10 @@ export async function POST(_request: NextRequest, { params }: { params: Promise<
   if (!user) return unauthorized();
   const { id } = await params;
 
-  const notification = await prisma.notification.findUnique({ where: { id } });
-  if (!notification || notification.userId !== user.id) return notFound("Notificación");
+  const ref = adminDb.doc(`notifications/${id}`);
+  const snap = await ref.get();
+  if (!snap.exists || snap.data()!.userId !== user.id) return notFound("Notificación");
 
-  await prisma.notification.update({ where: { id }, data: { read: true } });
+  await ref.update({ read: true });
   return NextResponse.json({ ok: true });
 }

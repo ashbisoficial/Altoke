@@ -2,10 +2,13 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/client";
+import { createUserWithEmailAndPassword, sendEmailVerification, updateProfile, signOut } from "firebase/auth";
+import { getFirebaseAuth } from "@/lib/firebase/client";
+import { firebaseErrorMessage } from "@/lib/firebase/errors";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { Logo } from "@/components/layout/Logo";
+import { AuthShell } from "@/components/layout/AuthShell";
+import { SocialAuthButtons } from "@/components/layout/SocialAuthButtons";
 
 export default function SignupPage() {
   const [name, setName] = useState("");
@@ -19,35 +22,46 @@ export default function SignupPage() {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    const supabase = createClient();
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { name },
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-      },
-    });
-    setLoading(false);
-    if (error) {
-      setError(error.message);
-      return;
+    const auth = getFirebaseAuth();
+    try {
+      const credential = await createUserWithEmailAndPassword(auth, email, password);
+      if (name.trim()) {
+        await updateProfile(credential.user, { displayName: name.trim() });
+      }
+      await sendEmailVerification(credential.user, {
+        url: `${window.location.origin}/auth/callback`,
+        handleCodeInApp: true,
+      });
+      // Don't leave them signed in until they've confirmed the address —
+      // mirrors the old Supabase behavior (email confirmation required).
+      await signOut(auth);
+      setDone(true);
+    } catch (err) {
+      setError(firebaseErrorMessage(err));
+    } finally {
+      setLoading(false);
     }
-    setDone(true);
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-bg px-4">
-      <div className="w-full max-w-sm rounded-xl border border-border bg-surface p-8 shadow-soft">
-        <Logo size="lg" />
-        <p className="mt-3 text-sm text-ink/60">Empieza a usar Altoke gratis</p>
-
+    <AuthShell tagline="Empieza a usar Altoke gratis">
         {done ? (
           <p className="mt-6 text-sm text-ink/70">
             Revisa tu correo <strong>{email}</strong> para confirmar tu cuenta.
           </p>
         ) : (
-          <form onSubmit={handleSignUp} className="mt-6 flex flex-col gap-3">
+          <>
+            <div className="mt-6">
+              <SocialAuthButtons next="/dashboard" onError={setError} />
+            </div>
+
+            <div className="my-5 flex items-center gap-3 text-xs text-ink/40">
+              <span className="h-px flex-1 bg-border" />
+              o con tu correo
+              <span className="h-px flex-1 bg-border" />
+            </div>
+
+            <form onSubmit={handleSignUp} className="flex flex-col gap-3">
             <label className="text-sm font-medium" htmlFor="name">
               Nombre
             </label>
@@ -86,7 +100,8 @@ export default function SignupPage() {
             <Button type="submit" disabled={loading} className="mt-2 w-full">
               {loading ? "Creando cuenta…" : "Crear cuenta"}
             </Button>
-          </form>
+            </form>
+          </>
         )}
 
         <p className="mt-6 text-center text-sm text-ink/60">
@@ -95,7 +110,6 @@ export default function SignupPage() {
             Inicia sesión
           </Link>
         </p>
-      </div>
-    </main>
+    </AuthShell>
   );
 }

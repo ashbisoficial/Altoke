@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { adminDb } from "@/lib/firebase/admin";
 import { getSessionUser } from "@/lib/auth";
 import { forbidden, notFound, unauthorized } from "@/lib/http";
 import { hasProjectPermission } from "@/lib/permissions";
@@ -9,17 +9,18 @@ export async function DELETE(_request: NextRequest, { params }: { params: Promis
   if (!user) return unauthorized();
   const { id } = await params;
 
-  const attachment = await prisma.attachment.findUnique({
-    where: { id },
-    include: { issue: { select: { projectId: true } } },
-  });
-  if (!attachment) return notFound("Adjunto");
+  const ref = adminDb.doc(`attachments/${id}`);
+  const snap = await ref.get();
+  if (!snap.exists) return notFound("Adjunto");
+  const attachment = snap.data()!;
+
+  const issueSnap = await adminDb.doc(`issues/${attachment.issueId}`).get();
+  const projectId = issueSnap.data()?.projectId;
 
   const canDelete =
-    attachment.uploaderId === user.id ||
-    (await hasProjectPermission(user.id, attachment.issue.projectId, "issue.edit"));
+    attachment.uploaderId === user.id || (projectId && (await hasProjectPermission(user.id, projectId, "issue.edit")));
   if (!canDelete) return forbidden();
 
-  await prisma.attachment.delete({ where: { id } });
+  await ref.delete();
   return NextResponse.json({ ok: true });
 }

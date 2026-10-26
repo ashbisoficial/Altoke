@@ -121,8 +121,11 @@
 }
 
 body {
-  background: rgb(var(--bg));
+  background-color: rgb(var(--bg));
   color: rgb(var(--ink));
+  /* Barely-there grain so flat color fields don't read as a flat vector
+     fill — the kind of texture a screen print or a scanned paper has. */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.03 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
 /* Accessible, visible focus ring everywhere — never suppressed. */
@@ -148,20 +151,65 @@ body {
     text-wrap: balance;
   }
 
-  /* Soft, colored elevation for cards — friendlier than a flat gray shadow. */
+  /* Soft, colored elevation for cards — friendlier than a flat gray shadow.
+     Layered (contact shadow + colored ambient glow) instead of one blur,
+     so edges still read as grounded rather than floating. */
   .shadow-soft {
-    box-shadow: 0 6px 20px -6px rgb(var(--accent) / 0.16);
+    box-shadow:
+      0 1px 2px rgb(var(--ink) / 0.05),
+      0 6px 20px -6px rgb(var(--accent) / 0.16);
+  }
+
+  /* Primary-button elevation: the soft colored shadow plus a thin inner
+     highlight along the top edge, like light catching a slightly convex
+     surface — avoids the flat, matte look of a plain solid-fill button. */
+  .shadow-soft-inset {
+    box-shadow:
+      0 1px 2px rgb(var(--ink) / 0.05),
+      0 6px 20px -6px rgb(var(--accent) / 0.16),
+      inset 0 1px 0 rgb(255 255 255 / 0.2);
+  }
+
+  .shadow-elevated {
+    box-shadow:
+      0 1px 2px rgb(var(--ink) / 0.06),
+      0 4px 10px -2px rgb(var(--ink) / 0.08),
+      0 20px 40px -12px rgb(var(--accent) / 0.22);
   }
 
   .shadow-soft-hover {
     transition:
-      box-shadow 0.15s ease,
-      transform 0.15s ease;
+      box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+      transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   .shadow-soft-hover:hover {
-    box-shadow: 0 10px 24px -8px rgb(var(--accent) / 0.22);
-    transform: translateY(-1px);
+    box-shadow:
+      0 1px 2px rgb(var(--ink) / 0.06),
+      0 10px 24px -8px rgb(var(--accent) / 0.22);
+    transform: translateY(-2px);
+  }
+
+  /* Faint dotted grid — a texture for a large empty panel (auth screens,
+     empty states) that reads as intentional, not blank. */
+  .bg-dot-grid {
+    background-image: radial-gradient(rgb(var(--ink) / 0.14) 1px, transparent 1px);
+    background-size: 20px 20px;
+  }
+
+  .animate-rise {
+    animation: rise 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 
   /* "Ticket stub" signature: a perforated dashed line separating the

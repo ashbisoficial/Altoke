@@ -1,36 +1,59 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { CalendarDays, ListTodo } from "lucide-react";
-import { prisma } from "@/lib/prisma";
+import { adminDb } from "@/lib/firebase/admin";
+import { tsToISO } from "@/lib/firebase/firestore-utils";
 import { getSessionUser } from "@/lib/auth";
-import { PRIORITY_LABEL } from "@/lib/priority";
+import { PRIORITY_LABEL, PRIORITY_ORDER, type Priority } from "@/lib/priority";
 
-function formatDueDate(date: Date) {
-  return date.toLocaleDateString("es", { day: "numeric", month: "short", timeZone: "UTC" });
+function formatDueDate(iso: string) {
+  return new Date(iso).toLocaleDateString("es", { day: "numeric", month: "short", timeZone: "UTC" });
 }
 
 export default async function MyTasksPage() {
   const user = await getSessionUser();
   if (!user) redirect("/login");
 
-  const issues = await prisma.issue.findMany({
-    where: { assigneeId: user.id },
-    include: {
-      project: { select: { id: true, key: true, name: true } },
-      status: { select: { name: true, color: true, category: true } },
-      issueType: { select: { name: true, color: true } },
-    },
-    orderBy: [{ dueDate: "asc" }, { priority: "asc" }],
+  const snap = await adminDb.collection("issues").where("assigneeId", "==", user.id).get();
+  const issues = snap.docs.map((d) => {
+    const data = d.data();
+    return {
+      id: d.id,
+      key: data.key as string,
+      title: data.title as string,
+      priority: data.priority as Priority,
+      dueDate: tsToISO(data.dueDate),
+      projectId: data.projectId as string,
+      status: data.status as { name: string; color: string; category: string },
+      issueType: data.issueType as { name: string; color: string | null },
+    };
   });
+  issues.sort((a, b) => {
+    const dueDiff = (a.dueDate ?? "9999").localeCompare(b.dueDate ?? "9999");
+    if (dueDiff !== 0) return dueDiff;
+    return PRIORITY_ORDER.indexOf(a.priority) - PRIORITY_ORDER.indexOf(b.priority);
+  });
+
+  const projectIds = [...new Set(issues.map((i) => i.projectId))];
+  const projectSnaps = projectIds.length
+    ? await adminDb.getAll(...projectIds.map((id) => adminDb.doc(`projects/${id}`)))
+    : [];
+  const projectById = new Map(projectSnaps.filter((s) => s.exists).map((s) => [s.id, s.data()!]));
 
   const pending = issues.filter((issue) => issue.status.category !== "DONE");
   const todayKey = new Date().toISOString().slice(0, 10);
 
-  const byProject = new Map<string, { project: (typeof issues)[number]["project"]; issues: typeof issues }>();
+  const byProject = new Map<string, { project: { id: string; key: string; name: string }; issues: typeof issues }>();
   for (const issue of pending) {
-    const entry = byProject.get(issue.project.id);
+    const entry = byProject.get(issue.projectId);
     if (entry) entry.issues.push(issue);
-    else byProject.set(issue.project.id, { project: issue.project, issues: [issue] });
+    else {
+      const p = projectById.get(issue.projectId);
+      byProject.set(issue.projectId, {
+        project: { id: issue.projectId, key: p?.key ?? "", name: p?.name ?? "" },
+        issues: [issue],
+      });
+    }
   }
 
   return (
@@ -68,7 +91,7 @@ export default async function MyTasksPage() {
               </div>
               <ul className="flex flex-col gap-1.5">
                 {projectIssues.map((issue) => {
-                  const overdue = !!issue.dueDate && issue.dueDate.toISOString().slice(0, 10) < todayKey;
+                  const overdue = !!issue.dueDate && issue.dueDate.slice(0, 10) < todayKey;
                   return (
                     <li key={issue.id}>
                       <Link
