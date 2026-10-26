@@ -43,10 +43,8 @@ env:
   - variable: FIREBASE_PROJECT_ID
     value: "altoke-ashbis"
     availability: [RUNTIME]
-  # Update this once you know the real App Hosting URL (Firebase Console
-  # shows it after the first deploy) — used to build invite/auth links.
   - variable: NEXT_PUBLIC_SITE_URL
-    value: "https://altoke-ashbis.web.app"
+    value: "https://altoke--altoke-ashbis.us-east4.hosted.app"
     availability: [BUILD, RUNTIME]
   - variable: FIREBASE_CLIENT_EMAIL
     secret: FIREBASE_CLIENT_EMAIL
