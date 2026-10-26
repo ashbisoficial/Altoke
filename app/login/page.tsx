@@ -9,6 +9,7 @@ import { firebaseErrorMessage } from "@/lib/firebase/errors";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { AuthShell } from "@/components/layout/AuthShell";
+import { SocialAuthButtons } from "@/components/layout/SocialAuthButtons";
 
 const EMAIL_FOR_SIGN_IN_KEY = "altoke:emailForSignIn";
 
@@ -84,7 +85,17 @@ function LoginForm() {
 
   return (
     <AuthShell tagline="Inicia sesión para continuar">
-        <div className="mt-6 flex gap-2 rounded-lg border border-border p-1 text-sm">
+        <div className="mt-6">
+          <SocialAuthButtons next={next} onError={setError} />
+        </div>
+
+        <div className="my-5 flex items-center gap-3 text-xs text-ink/40">
+          <span className="h-px flex-1 bg-border" />
+          o con tu correo
+          <span className="h-px flex-1 bg-border" />
+        </div>
+
+        <div className="flex gap-2 rounded-lg border border-border p-1 text-sm">
           <button
             type="button"
             onClick={() => setMode("password")}

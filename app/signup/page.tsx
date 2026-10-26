@@ -8,6 +8,7 @@ import { firebaseErrorMessage } from "@/lib/firebase/errors";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { AuthShell } from "@/components/layout/AuthShell";
+import { SocialAuthButtons } from "@/components/layout/SocialAuthButtons";
 
 export default function SignupPage() {
   const [name, setName] = useState("");
@@ -49,7 +50,18 @@ export default function SignupPage() {
             Revisa tu correo <strong>{email}</strong> para confirmar tu cuenta.
           </p>
         ) : (
-          <form onSubmit={handleSignUp} className="mt-6 flex flex-col gap-3">
+          <>
+            <div className="mt-6">
+              <SocialAuthButtons next="/dashboard" onError={setError} />
+            </div>
+
+            <div className="my-5 flex items-center gap-3 text-xs text-ink/40">
+              <span className="h-px flex-1 bg-border" />
+              o con tu correo
+              <span className="h-px flex-1 bg-border" />
+            </div>
+
+            <form onSubmit={handleSignUp} className="flex flex-col gap-3">
             <label className="text-sm font-medium" htmlFor="name">
               Nombre
             </label>
@@ -88,7 +100,8 @@ export default function SignupPage() {
             <Button type="submit" disabled={loading} className="mt-2 w-full">
               {loading ? "Creando cuenta…" : "Crear cuenta"}
             </Button>
-          </form>
+            </form>
+          </>
         )}
 
         <p className="mt-6 text-center text-sm text-ink/60">
