@@ -73,7 +73,7 @@ export default async function IssueListPage({
       where,
       include: {
         issueType: { select: { name: true, color: true } },
-        status: { select: { name: true, color: true, category: true } },
+        status: { select: { id: true, name: true, color: true, category: true } },
         assignee: { select: { name: true, email: true } },
         sprint: { select: { name: true } },
       },
@@ -128,6 +128,7 @@ export default async function IssueListPage({
           </p>
 
           <IssueTable
+            projectId={projectId}
             issues={issues.map((i) => ({
               id: i.id,
               key: i.key,
@@ -137,19 +138,27 @@ export default async function IssueListPage({
               dueDate: i.dueDate?.toISOString() ?? null,
               updatedAt: i.updatedAt.toISOString(),
               issueType: i.issueType,
-              status: i.status,
+              status: { id: i.status.id ?? "", name: i.status.name, color: i.status.color, category: i.status.category },
               assignee: i.assignee,
               sprintName: i.sprint?.name ?? null,
             }))}
             columns={query.columns}
             sort={query.sort}
-            sortHref={(field) => {
-              const next = new URLSearchParams(currentQuery);
-              next.delete("page");
-              const isCurrent = query.sort?.field === field;
-              const dir = isCurrent && query.sort?.dir === "asc" ? "-" : "";
-              next.set("sort", `${dir}${field}`);
-              return `/projects/${projectId}/issues?${next.toString()}`;
+            sortLinks={Object.fromEntries(
+              ["key", "title", "status", "priority", "dueDate", "updatedAt"].map((field) => {
+                const next = new URLSearchParams(currentQuery);
+                next.delete("page");
+                const isCurrent = query.sort?.field === field;
+                const dir = isCurrent && query.sort?.dir === "asc" ? "-" : "";
+                next.set("sort", `${dir}${field}`);
+                return [field, `/projects/${projectId}/issues?${next.toString()}`];
+              }),
+            )}
+            options={{
+              statuses: project.workflow.statuses.map((s) => ({ id: s.id, name: s.name })),
+              sprints: project.sprints.map((s) => ({ id: s.id, name: s.name })),
+              labels: project.labels.map((l) => ({ id: l.id, name: l.name })),
+              people: project.members.map((m) => ({ id: m.user.id, name: m.user.name ?? m.user.email })),
             }}
           />
 

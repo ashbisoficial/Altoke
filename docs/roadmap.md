@@ -239,6 +239,16 @@ están en el job de migraciones.
 | F0-10 | Hecho (decisión: eliminar) | Los componentes no tenían interfaz ni creación; se eliminan. La migración se niega a borrar si hay datos. |
 | F0-11 | Hecho | Matriz de 13 permisos × Admin, Member, Viewer contra la base, más pruebas de rutas con sesión simulada (crear, transicionar, iniciar sprint, borrar). |
 
+### Fase 1 — avance
+
+| ID | Estado | Notas |
+|---|---|---|
+| F1-1 | Hecho | Markdown con vista previa (`react-markdown`, sin HTML crudo ni enlaces `javascript:`), @menciones con notificación `MENTIONED` solo para menciones nuevas, y adjuntos en línea al pegar o soltar archivos. |
+| F1-2 | Hecho | Campos personalizados por proyecto (texto, número, fecha, selección, selección múltiple, persona). Orden, obligatorio y borrado desde configuración; aparecen en el formulario de creación, el detalle y los filtros. Valores en `Issue.customFields` (JSONB con índice GIN). |
+| F1-3 | Hecho | Vista de lista con filtros en la URL (formulario GET), orden por columnas, columnas elegibles, paginación y filtros guardados compartidos o privados. |
+| F1-4 | Hecho | Edición masiva por incidencia: estado (con las reglas del flujo), persona, sprint, prioridad y etiquetas. Cada incidencia se procesa aparte y el resultado indica cuáles fallaron y por qué. |
+| F1-5 a F1-13 | Pendiente | Configuración de tablero, versiones, épicas y roadmap, notificaciones por correo (depende de elegir proveedor: pregunta abierta 4), reportes, importación y exportación CSV, registro de tiempo, clonar o mover incidencias, paleta de comandos. |
+
 **Cambios que rompen compatibilidad en `/api/v1`** (aceptados por ser de uso personal): los errores pasan de `{ error: "texto" }` a `{ error: { code, message } }`; los listados devuelven 50 ítems por defecto, con `nextCursor`; las llaves nuevas empiezan solo con `READ` y tienen límite de 120 peticiones por minuto.
 
 **Comportamientos nuevos a conocer:** las incidencias nuevas van al final del backlog y del tablero (orden por `rank`, antes era por fecha); borrar una incidencia la manda a la papelera en vez de eliminarla.
