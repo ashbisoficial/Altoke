@@ -1,13 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getApiUser } from "@/lib/api-auth";
-import { errorResponse, forbidden, notFound, unauthorized, zodErrorResponse } from "@/lib/http";
 import { hasProjectPermission, isProjectMember } from "@/lib/permissions";
 import { ServiceError, updateIssue, updateIssueInput } from "@/lib/issue-service";
+import {
+  v1Error,
+  v1Forbidden,
+  v1NotFound,
+  v1Unauthorized,
+  v1ValidationError,
+} from "@/lib/api-v1";
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const user = await getApiUser(request);
-  if (!user) return unauthorized();
+  if (!user) return v1Unauthorized();
   const { id } = await params;
 
   const issue = await prisma.issue.findUnique({
@@ -20,29 +26,29 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       labels: { include: { label: true } },
     },
   });
-  if (!issue) return notFound("Incidencia");
-  if (!(await isProjectMember(user.id, issue.projectId))) return forbidden();
+  if (!issue) return v1NotFound("Incidencia");
+  if (!(await isProjectMember(user.id, issue.projectId))) return v1Forbidden();
 
   return NextResponse.json({ issue });
 }
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const user = await getApiUser(request);
-  if (!user) return unauthorized();
+  if (!user) return v1Unauthorized();
   const { id } = await params;
 
   const existing = await prisma.issue.findUnique({ where: { id }, select: { projectId: true } });
-  if (!existing) return notFound("Incidencia");
-  if (!(await hasProjectPermission(user.id, existing.projectId, "issue.edit"))) return forbidden();
+  if (!existing) return v1NotFound("Incidencia");
+  if (!(await hasProjectPermission(user.id, existing.projectId, "issue.edit"))) return v1Forbidden();
 
   const parsed = updateIssueInput.safeParse(await request.json().catch(() => null));
-  if (!parsed.success) return zodErrorResponse(parsed.error);
+  if (!parsed.success) return v1ValidationError(parsed.error);
 
   try {
     const issue = await updateIssue(user.id, id, parsed.data);
     return NextResponse.json({ issue });
   } catch (e) {
-    if (e instanceof ServiceError) return errorResponse(e.status, e.message);
+    if (e instanceof ServiceError) return v1Error(e.status, e.message);
     throw e;
   }
 }

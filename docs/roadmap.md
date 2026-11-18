@@ -216,3 +216,27 @@ Se responden antes de empezar la fase indicada.
 5. **Presupuesto de infraestructura:** ¿qué monto mensual es aceptable si se superan los límites gratuitos?
 6. **Prioridad dentro de cada fase:** se propone ejecutar todos los P0 antes que los P1. ¿Se confirma?
 7. **Entorno de QA:** coordinar con el dev dónde corren las pruebas automatizadas (por ejemplo GitHub Actions contra staging) y quién administra las llaves y los secretos de ese ambiente.
+
+---
+
+## Estado de implementación
+
+Registro de avance por ítem. Se actualiza en cada entrega.
+
+| ID | Estado | Notas |
+|---|---|---|
+| F0-1 | Pendiente | Requiere crear el proyecto de Supabase de staging y el comando `seed:qa`. |
+| F0-2 | Hecho (falta protección de rama) | `.github/workflows/ci.yml`: lint, typecheck, pruebas y build en cada PR; migraciones sobre PostgreSQL vacío y comprobación de deriva. Para bloquear el merge, marcar los jobs `quality` y `migrations` como required en la protección de la rama. |
+| F0-3 | Pendiente | `data-testid` y menú "Mover a…". |
+| F0-4 | Pendiente | Campo `rank`. |
+| F0-5 | Parcial | Hecho: paginación por cursor (máx. 100, por defecto 50), filtros `status`, `type`, `assignee`, `sprint`, `updatedSince`, y errores `{ error: { code, message, fields? } }` en todas las rutas de `/api/v1`. Pendiente: especificación OpenAPI generada desde Zod. |
+| F0-6 | Hecho | `POST /api/sprints/:id/start` y `/complete`. Un solo sprint activo por proyecto (409, aplicado también por índice parcial en la base). Completar mueve las incidencias sin terminar a backlog o a un sprint planeado, y registra el cambio en el historial. `PATCH` ya no acepta `status`. |
+| F0-7 | Pendiente | Alcances y límite de uso en llaves. |
+| F0-8 | Pendiente | Borrado lógico. |
+| F0-9 | Pendiente | Historial ampliado. |
+| F0-10 | Pendiente | Componentes. |
+| F0-11 | Parcial | Infraestructura de pruebas (Vitest) y pruebas de paginación, errores de API v1 y ciclo de vida de sprint. Falta la matriz rol × acción. |
+
+**Cambios que rompen compatibilidad en `/api/v1`** (aceptados por ser de uso personal): los errores pasan de `{ error: "texto" }` a `{ error: { code, message } }`, y el listado de incidencias y proyectos devuelve como máximo 50 ítems por defecto, con `nextCursor` para la siguiente página.
+
+**Cómo correr las pruebas:** `npm test`. Las pruebas de integración (sprints y API v1) necesitan `DATABASE_URL` apuntando a una base PostgreSQL con las migraciones aplicadas; sin esa variable se omiten.

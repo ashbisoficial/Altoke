@@ -1,0 +1,77 @@
+name: CI
+
+# F0-2: se ejecuta en cada pull request. Para que el merge quede bloqueado
+# cuando algo falla, marca los jobs "quality" y "migrations" como required
+# status checks en la protección de la rama principal (ajuste de repositorio).
+on:
+  pull_request:
+  workflow_dispatch: {}
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Lint, tipos, pruebas y build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Pruebas
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+  migrations:
+    name: Migraciones sobre base vacía
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: altoke
+          POSTGRES_PASSWORD: altoke
+          POSTGRES_DB: altoke_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U altoke -d altoke_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgresql://altoke:altoke@localhost:5432/altoke_ci
+      DIRECT_URL: postgresql://altoke:altoke@localhost:5432/altoke_ci
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Aplicar todas las migraciones a una base vacía
+        run: npx prisma migrate deploy
+
+      - name: Pruebas de integración (sprints y API v1 contra la base)
+        run: npm test
+
+      - name: Comprobar que el esquema coincide con schema.prisma
+        run: npx prisma migrate diff --from-url "$DATABASE_URL" --to-schema-datamodel prisma/schema.prisma --exit-code

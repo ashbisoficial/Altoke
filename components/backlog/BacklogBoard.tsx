@@ -118,6 +118,7 @@ export function BacklogBoard({
   const [error, setError] = useState<string | null>(null);
   const [newSprintName, setNewSprintName] = useState("");
   const [creatingSprint, setCreatingSprint] = useState(false);
+  const [sprintError, setSprintError] = useState<string | null>(null);
   const [assigneeFilter, setAssigneeFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
 
@@ -233,26 +234,46 @@ export function BacklogBoard({
     }
   }
 
-  async function updateSprintStatus(sprintId: string, status: BacklogSprint["status"]) {
-    await fetch(`/api/sprints/${sprintId}`, {
-      method: "PATCH",
+  // Iniciar y completar tienen reglas en el servidor (un solo sprint activo,
+  // fechas válidas, incidencias sin terminar movidas). Si lo rechaza, se
+  // muestra el motivo en lugar de ignorarlo.
+  async function runSprintAction(sprintId: string, action: "start" | "complete") {
+    setSprintError(null);
+    const res = await fetch(`/api/sprints/${sprintId}/${action}`, {
+      method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status }),
+      body: JSON.stringify({}),
     });
+    if (!res.ok) {
+      const data = await res.json().catch(() => null);
+      setSprintError(data?.error ?? "No se pudo cambiar el estado del sprint");
+      return;
+    }
     router.refresh();
   }
 
   async function updateSprintDate(sprintId: string, field: "startDate" | "endDate", value: string) {
-    await fetch(`/api/sprints/${sprintId}`, {
+    setSprintError(null);
+    const res = await fetch(`/api/sprints/${sprintId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ [field]: value ? new Date(value).toISOString() : null }),
     });
+    if (!res.ok) {
+      const data = await res.json().catch(() => null);
+      setSprintError(data?.error ?? "No se pudo guardar la fecha");
+      return;
+    }
     router.refresh();
   }
 
   return (
     <div>
+      {sprintError && (
+        <p role="alert" className="mb-3 rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-600">
+          {sprintError}
+        </p>
+      )}
       <form onSubmit={createSprint} className="mb-4 flex gap-2">
         <input
           value={newSprintName}
@@ -357,12 +378,12 @@ export function BacklogBoard({
                   />
                 </label>
                 {sprint.status === "PLANNED" && (
-                  <Button variant="ghost" onClick={() => updateSprintStatus(sprint.id, "ACTIVE")}>
+                  <Button variant="ghost" onClick={() => runSprintAction(sprint.id, "start")}>
                     Iniciar
                   </Button>
                 )}
                 {sprint.status === "ACTIVE" && (
-                  <Button variant="ghost" onClick={() => updateSprintStatus(sprint.id, "COMPLETED")}>
+                  <Button variant="ghost" onClick={() => runSprintAction(sprint.id, "complete")}>
                     Completar
                   </Button>
                 )}

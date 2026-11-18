@@ -2,12 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/auth";
-import { forbidden, notFound, unauthorized, zodErrorResponse } from "@/lib/http";
+import { errorResponse, forbidden, notFound, unauthorized, zodErrorResponse } from "@/lib/http";
 import { hasProjectPermission } from "@/lib/permissions";
+import { ServiceError } from "@/lib/issue-service";
+import { assertValidSprintDates } from "@/lib/sprint-service";
 
 const updateSprintSchema = z.object({
   name: z.string().trim().min(1).max(100).optional(),
   goal: z.string().trim().max(1000).nullable().optional(),
+  // El estado no se cambia aquí: iniciar y completar tienen reglas propias
+  // (POST /api/sprints/:id/start y /complete). Se detecta abajo para dar 409.
   status: z.enum(["PLANNED", "ACTIVE", "COMPLETED"]).optional(),
   startDate: z.string().datetime().nullable().optional(),
   endDate: z.string().datetime().nullable().optional(),
@@ -24,7 +28,20 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
   const parsed = updateSprintSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return zodErrorResponse(parsed.error);
-  const { startDate, endDate, ...rest } = parsed.data;
+  const { startDate, endDate, status, ...rest } = parsed.data;
+  if (status !== undefined) {
+    return errorResponse(409, "Para cambiar el estado usa POST /api/sprints/:id/start o /complete");
+  }
+
+  // Valida el rango con las fechas que quedarían tras el cambio.
+  const nextStart = startDate !== undefined ? (startDate ? new Date(startDate) : null) : sprint.startDate;
+  const nextEnd = endDate !== undefined ? (endDate ? new Date(endDate) : null) : sprint.endDate;
+  try {
+    assertValidSprintDates(nextStart, nextEnd);
+  } catch (e) {
+    if (e instanceof ServiceError) return errorResponse(e.status, e.message);
+    throw e;
+  }
 
   const updated = await prisma.sprint.update({
     where: { id },
