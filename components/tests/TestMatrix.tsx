@@ -120,19 +120,19 @@ export function TestMatrix({
 
       <div className="mb-4 flex flex-wrap gap-4">
         <form onSubmit={createExecution} className="flex gap-2">
-          <Input
+          <Input data-testid="test-matrix-input-nombre-de-la-ejecucion"
             value={newExecutionName}
             onChange={(e) => setNewExecutionName(e.target.value)}
             placeholder="Nombre de la ejecución"
           />
-          <Button type="submit" disabled={creatingExecution || rows.length === 0}>
+          <Button data-testid="test-matrix-button-2" type="submit" disabled={creatingExecution || rows.length === 0}>
             <Plus size={14} />
             Ejecución
           </Button>
         </form>
         {availableCases.length > 0 && (
           <div className="flex gap-2">
-            <select
+            <select data-testid="test-matrix-select-3"
               className="rounded-lg border border-border bg-surface px-2 py-1.5 text-sm"
               value={selectedCaseId}
               onChange={(e) => setSelectedCaseId(e.target.value)}
@@ -143,7 +143,7 @@ export function TestMatrix({
                 </option>
               ))}
             </select>
-            <Button variant="secondary" onClick={addCase}>
+            <Button data-testid="test-matrix-button-4" variant="secondary" onClick={addCase}>
               <Plus size={14} />
               Caso al plan
             </Button>
@@ -181,7 +181,7 @@ export function TestMatrix({
                     return (
                       <td key={exec.id} className="border-b border-border px-2 py-2 text-center">
                         {run ? (
-                          <button
+                          <button data-testid="test-matrix-button-removecase-row-testcase-id-classname-tex"
                             type="button"
                             onClick={() => openRun(run)}
                             className="inline-flex h-7 w-7 items-center justify-center rounded-full text-white"
@@ -196,7 +196,7 @@ export function TestMatrix({
                     );
                   })}
                   <td className="border-b border-border px-2 py-2 text-right">
-                    <button
+                    <button data-testid="test-matrix-button-quitar"
                       type="button"
                       onClick={() => removeCase(row.testCase.id)}
                       className="text-xs text-ink/40 hover:text-red-600"
@@ -214,7 +214,7 @@ export function TestMatrix({
       {activeRun && (
         <div className="shadow-soft mt-4 flex flex-col gap-2 rounded-xl border border-border bg-surface p-4">
           <h3 className="text-sm font-semibold">Actualizar resultado</h3>
-          <select
+          <select data-testid="test-matrix-select-7"
             className="rounded-lg border border-border bg-surface px-2 py-1.5 text-sm"
             value={status}
             onChange={(e) => setStatus(e.target.value as RunStatus)}
@@ -225,7 +225,7 @@ export function TestMatrix({
               </option>
             ))}
           </select>
-          <textarea
+          <textarea data-testid="test-matrix-textarea-comentario-evidencia-opcional"
             value={comment}
             onChange={(e) => setComment(e.target.value)}
             rows={2}
@@ -233,10 +233,10 @@ export function TestMatrix({
             className="w-full rounded-lg border border-border bg-surface p-2 text-sm"
           />
           <div className="flex gap-2">
-            <Button onClick={saveRun} disabled={saving}>
+            <Button data-testid="test-matrix-button-9" onClick={saveRun} disabled={saving}>
               {saving ? "Guardando…" : "Guardar"}
             </Button>
-            <Button variant="ghost" onClick={() => setActiveRun(null)}>
+            <Button data-testid="test-matrix-button-10" variant="ghost" onClick={() => setActiveRun(null)}>
               Cerrar
             </Button>
           </div>

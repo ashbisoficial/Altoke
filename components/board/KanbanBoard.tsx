@@ -15,7 +15,7 @@ import {
 } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { useDroppable } from "@dnd-kit/core";
-import { IssueCard, type BoardIssue } from "./IssueCard";
+import { IssueCard, type BoardIssue, type StatusTarget } from "./IssueCard";
 import { PRIORITY_LABEL, PRIORITY_ORDER } from "@/lib/priority";
 
 const UNASSIGNED = "__sin_asignar__";
@@ -30,9 +30,17 @@ export type BoardStatus = {
 function Column({
   status,
   issues,
+  allIssueIds,
+  targets,
+  onMoveTo,
+  onStep,
 }: {
   status: BoardStatus;
   issues: BoardIssue[];
+  allIssueIds: string[];
+  targets: StatusTarget[];
+  onMoveTo: (issueId: string, statusId: string) => void;
+  onStep: (issueId: string, delta: -1 | 1) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: status.id });
 
@@ -57,9 +65,20 @@ function Column({
             isOver ? "border-accent bg-accent/5" : "border-transparent"
           }`}
         >
-          {issues.map((issue) => (
-            <IssueCard key={issue.id} issue={issue} />
-          ))}
+          {issues.map((issue) => {
+            const pos = allIssueIds.indexOf(issue.id);
+            return (
+              <IssueCard
+                key={issue.id}
+                issue={issue}
+                targets={targets.filter((t) => t.id !== status.id)}
+                canMoveUp={pos > 0}
+                canMoveDown={pos >= 0 && pos < allIssueIds.length - 1}
+                onMoveTo={(statusId) => onMoveTo(issue.id, statusId)}
+                onStep={(delta) => onStep(issue.id, delta)}
+              />
+            );
+          })}
         </div>
       </SortableContext>
     </div>
@@ -125,6 +144,70 @@ export function KanbanBoard({
     setError(null);
   }
 
+  // Orden completo por columna (sin filtros): de ahí salen los vecinos de rank.
+  const columnIds = useMemo(() => {
+    const map = new Map<string, string[]>();
+    for (const issue of issues) {
+      const list = map.get(issue.statusId) ?? [];
+      list.push(issue.id);
+      map.set(issue.statusId, list);
+    }
+    return map;
+  }, [issues]);
+
+  const statusTargets: StatusTarget[] = statuses.map((s) => ({ id: s.id, name: s.name }));
+
+  /**
+   * Único punto de entrada para mover una tarjeta: arrastre, selector y
+   * botones. Primero cambia de estado (la transición valida el workflow) y
+   * después la coloca en `index` dentro de la columna (sin contar la propia).
+   */
+  async function placeIssue(issueId: string, targetStatusId: string, index: number | "end") {
+    const issue = issues.find((i) => i.id === issueId);
+    if (!issue) return;
+    const others = issues.filter((i) => i.id !== issueId && i.statusId === targetStatusId);
+    const at = index === "end" ? others.length : Math.max(0, Math.min(index, others.length));
+    const previous = others[at - 1]?.id ?? null;
+    const next = others[at]?.id ?? null;
+
+    const sameColumn = issue.statusId === targetStatusId;
+    const fromIdx = (columnIds.get(targetStatusId) ?? []).indexOf(issueId);
+    if (sameColumn && fromIdx === at) return;
+
+    const snapshot = issues;
+    const rest = issues.filter((i) => i.id !== issueId);
+    const anchor = previous
+      ? rest.findIndex((i) => i.id === previous) + 1
+      : next
+        ? rest.findIndex((i) => i.id === next)
+        : rest.length;
+    rest.splice(anchor, 0, { ...issue, statusId: targetStatusId });
+    setIssues(rest);
+    setError(null);
+
+    const fail = async (res: Response) => {
+      setIssues(snapshot);
+      const body = await res.json().catch(() => ({}));
+      setError(body.error?.message ?? body.error ?? "No se pudo mover la incidencia");
+    };
+
+    if (!sameColumn) {
+      const res = await fetch(`/api/issues/${issueId}/transition`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ toStatusId: targetStatusId }),
+      });
+      if (!res.ok) return fail(res);
+    }
+
+    const res = await fetch(`/api/issues/${issueId}/rank`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ previousId: previous, nextId: next }),
+    });
+    if (!res.ok) return fail(res);
+  }
+
   async function handleDragEnd(event: DragEndEvent) {
     setActiveId(null);
     const { active, over } = event;
@@ -133,31 +216,31 @@ export function KanbanBoard({
     const issue = issues.find((i) => i.id === active.id);
     if (!issue) return;
 
-    // `over` may be another card (find its column) or a column itself.
-    const overStatusId = statuses.some((s) => s.id === over.id)
-      ? String(over.id)
-      : issues.find((i) => i.id === over.id)?.statusId;
-
-    if (!overStatusId || overStatusId === issue.statusId) return;
-
-    const previousStatusId = issue.statusId;
-    setIssues((prev) =>
-      prev.map((i) => (i.id === issue.id ? { ...i, statusId: overStatusId } : i)),
-    );
-
-    const res = await fetch(`/api/issues/${issue.id}/transition`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ toStatusId: overStatusId }),
-    });
-
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({}));
-      setIssues((prev) =>
-        prev.map((i) => (i.id === issue.id ? { ...i, statusId: previousStatusId } : i)),
-      );
-      setError(body.error ?? "No se pudo mover la incidencia");
+    const overId = String(over.id);
+    if (statuses.some((s) => s.id === overId)) {
+      return placeIssue(issue.id, overId, "end");
     }
+
+    const overIssue = issues.find((i) => i.id === overId);
+    if (!overIssue) return;
+    const target = overIssue.statusId;
+    const fullList = columnIds.get(target) ?? [];
+    const fromIdx = fullList.indexOf(issue.id);
+    const fullOverIdx = fullList.indexOf(overId);
+    const others = issues.filter((i) => i.id !== issue.id && i.statusId === target);
+    const overIdx = others.findIndex((i) => i.id === overId);
+    const movingDown = issue.statusId === target && fromIdx !== -1 && fromIdx < fullOverIdx;
+    return placeIssue(issue.id, target, movingDown ? overIdx + 1 : overIdx);
+  }
+
+  function stepIssue(issueId: string, delta: -1 | 1) {
+    const issue = issues.find((i) => i.id === issueId);
+    if (!issue) return;
+    const list = columnIds.get(issue.statusId) ?? [];
+    const pos = list.indexOf(issueId);
+    const target = pos + delta;
+    if (target < 0 || target >= list.length) return;
+    return placeIssue(issueId, issue.statusId, target);
   }
 
   return (
@@ -165,6 +248,7 @@ export function KanbanBoard({
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <ListFilter size={14} className="shrink-0 text-ink/40" />
         <select
+          data-testid="board-filter-assignee-select"
           value={assigneeFilter}
           onChange={(e) => setAssigneeFilter(e.target.value)}
           className="rounded-lg border border-border bg-surface px-2 py-1.5 text-xs"
@@ -178,6 +262,7 @@ export function KanbanBoard({
           ))}
         </select>
         <select
+          data-testid="board-filter-type-select"
           value={typeFilter}
           onChange={(e) => setTypeFilter(e.target.value)}
           className="rounded-lg border border-border bg-surface px-2 py-1.5 text-xs"
@@ -190,6 +275,7 @@ export function KanbanBoard({
           ))}
         </select>
         <select
+          data-testid="board-filter-priority-select"
           value={priorityFilter}
           onChange={(e) => setPriorityFilter(e.target.value)}
           className="rounded-lg border border-border bg-surface px-2 py-1.5 text-xs"
@@ -204,6 +290,7 @@ export function KanbanBoard({
         {hasActiveFilters && (
           <button
             type="button"
+            data-testid="board-filter-clear-button"
             onClick={() => {
               setAssigneeFilter("all");
               setTypeFilter("all");
@@ -232,10 +319,29 @@ export function KanbanBoard({
           style={{ gridTemplateColumns: `repeat(${Math.max(statuses.length, 1)}, minmax(0, 1fr))` }}
         >
           {statuses.map((status) => (
-            <Column key={status.id} status={status} issues={issuesByStatus.get(status.id) ?? []} />
+            <Column
+              key={status.id}
+              status={status}
+              issues={issuesByStatus.get(status.id) ?? []}
+              allIssueIds={columnIds.get(status.id) ?? []}
+              targets={statusTargets}
+              onMoveTo={(issueId, statusId) => placeIssue(issueId, statusId, "end")}
+              onStep={stepIssue}
+            />
           ))}
         </div>
-        <DragOverlay>{activeIssue ? <IssueCard issue={activeIssue} /> : null}</DragOverlay>
+        <DragOverlay>
+          {activeIssue ? (
+            <IssueCard
+              issue={activeIssue}
+              targets={statusTargets}
+              canMoveUp={false}
+              canMoveDown={false}
+              onMoveTo={() => {}}
+              onStep={() => {}}
+            />
+          ) : null}
+        </DragOverlay>
       </DndContext>
     </div>
   );

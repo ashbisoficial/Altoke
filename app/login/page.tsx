@@ -71,14 +71,14 @@ function LoginForm() {
         <div className="mt-6 flex gap-2 rounded-lg border border-border p-1 text-sm">
           <button
             type="button"
-            onClick={() => setMode("password")}
+            onClick={() => setMode("password")} data-testid="login-mode-password-button"
             className={`flex-1 rounded px-3 py-1.5 ${mode === "password" ? "bg-accent text-accentInk" : "text-ink/70"}`}
           >
             Contraseña
           </button>
           <button
             type="button"
-            onClick={() => setMode("magic-link")}
+            onClick={() => setMode("magic-link")} data-testid="login-mode-magic-link-button"
             className={`flex-1 rounded px-3 py-1.5 ${mode === "magic-link" ? "bg-accent text-accentInk" : "text-ink/70"}`}
           >
             Enlace mágico
@@ -91,7 +91,7 @@ function LoginForm() {
               Correo
             </label>
             <Input
-              id="email"
+              id="email" data-testid="login-email-input"
               type="email"
               autoComplete="email"
               required
@@ -102,7 +102,7 @@ function LoginForm() {
               Contraseña
             </label>
             <Input
-              id="password"
+              id="password" data-testid="login-password-input"
               type="password"
               autoComplete="current-password"
               required
@@ -110,7 +110,7 @@ function LoginForm() {
               onChange={(e) => setPassword(e.target.value)}
             />
             {error && <p className="text-sm text-red-600">{error}</p>}
-            <Button type="submit" disabled={loading} className="mt-2 w-full">
+            <Button type="submit" disabled={loading} className="mt-2 w-full" data-testid="login-submit-password-button">
               {loading ? "Entrando…" : "Entrar"}
             </Button>
           </form>
@@ -124,7 +124,7 @@ function LoginForm() {
               Correo
             </label>
             <Input
-              id="magic-email"
+              id="magic-email" data-testid="login-magic-email-input"
               type="email"
               autoComplete="email"
               required
@@ -132,7 +132,7 @@ function LoginForm() {
               onChange={(e) => setEmail(e.target.value)}
             />
             {error && <p className="text-sm text-red-600">{error}</p>}
-            <Button type="submit" disabled={loading} className="mt-2 w-full">
+            <Button type="submit" disabled={loading} className="mt-2 w-full" data-testid="login-submit-magic-link-button">
               {loading ? "Enviando…" : "Enviar enlace mágico"}
             </Button>
           </form>

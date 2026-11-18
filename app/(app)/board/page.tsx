@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/auth";
 import { isProjectMember } from "@/lib/permissions";
+import { ensureProjectRanks } from "@/lib/rank-service";
 import { KanbanBoard } from "@/components/board/KanbanBoard";
 import { CreateIssueForm } from "@/components/board/CreateIssueForm";
 import { ProjectNav } from "@/components/project/ProjectNav";
@@ -30,6 +31,7 @@ export default async function BoardPage({
   });
   if (!project) notFound();
 
+  await ensureProjectRanks(projectId);
   const issues = await prisma.issue.findMany({
     where: { projectId, parentId: null },
     include: {
@@ -37,7 +39,7 @@ export default async function BoardPage({
       assignee: { select: { name: true, email: true, avatarUrl: true } },
       _count: { select: { children: true } },
     },
-    orderBy: { createdAt: "desc" },
+    orderBy: { rank: "asc" },
   });
 
   return (

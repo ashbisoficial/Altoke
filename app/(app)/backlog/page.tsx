@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/auth";
 import { isProjectMember } from "@/lib/permissions";
+import { ensureProjectRanks } from "@/lib/rank-service";
 import { BacklogBoard } from "@/components/backlog/BacklogBoard";
 import { ProjectNav } from "@/components/project/ProjectNav";
 
@@ -23,6 +24,7 @@ export default async function BacklogPage({
   });
   if (!project) notFound();
 
+  await ensureProjectRanks(projectId);
   const issues = await prisma.issue.findMany({
     where: { projectId, parentId: null },
     include: {
@@ -30,7 +32,7 @@ export default async function BacklogPage({
       status: { select: { name: true, color: true, category: true } },
       assignee: { select: { name: true, email: true } },
     },
-    orderBy: { number: "asc" },
+    orderBy: { rank: "asc" },
   });
 
   return (

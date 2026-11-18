@@ -35,7 +35,7 @@ export function TestPlanForm({ projectId }: { projectId: string }) {
 
   if (!open) {
     return (
-      <Button variant="secondary" onClick={() => setOpen(true)}>
+      <Button data-testid="test-plan-form-button-1" variant="secondary" onClick={() => setOpen(true)}>
         <Plus size={14} />
         Plan de pruebas
       </Button>
@@ -44,15 +44,15 @@ export function TestPlanForm({ projectId }: { projectId: string }) {
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-wrap items-end gap-2">
-      <Input
+      <Input data-testid="test-plan-form-input-nombre-del-plan-ej-release-1-0"
         value={name}
         onChange={(e) => setName(e.target.value)}
         placeholder="Nombre del plan (ej. Release 1.0)"
       />
-      <Button type="submit" disabled={loading}>
+      <Button data-testid="test-plan-form-button-3" type="submit" disabled={loading}>
         Crear
       </Button>
-      <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
+      <Button data-testid="test-plan-form-button-4" type="button" variant="ghost" onClick={() => setOpen(false)}>
         Cancelar
       </Button>
       {error && <p className="w-full text-sm text-red-600">{error}</p>}

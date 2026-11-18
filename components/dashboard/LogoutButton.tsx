@@ -17,7 +17,7 @@ export function LogoutButton({ compact }: { compact?: boolean }) {
 
   if (compact) {
     return (
-      <button
+      <button data-testid="logout-button-button-cerrar-sesion"
         type="button"
         onClick={handleLogout}
         aria-label="Cerrar sesión"
@@ -29,7 +29,7 @@ export function LogoutButton({ compact }: { compact?: boolean }) {
   }
 
   return (
-    <Button variant="secondary" onClick={handleLogout}>
+    <Button data-testid="logout-button-button-2" variant="secondary" onClick={handleLogout}>
       <LogOut size={14} />
       Cerrar sesión
     </Button>

@@ -53,19 +53,44 @@ model User {
 /// actuando como el usuario dueño de la llave — mismos permisos que si
 /// hubiera iniciado sesión. Solo se guarda el hash; el valor real se
 /// muestra una única vez, al crearla.
-model ApiKey {
-  id         String    @id @default(cuid())
-  name       String
-  keyPrefix  String
-  keyHash    String    @unique
-  userId     String
-  createdAt  DateTime  @default(now())
-  lastUsedAt DateTime?
-  revokedAt  DateTime?
+enum ApiKeyScope {
+  READ
+  WRITE
+  TEST_RESULTS
+}
 
-  user User @relation("ApiKeyOwner", fields: [userId], references: [id], onDelete: Cascade)
+model ApiKey {
+  id                 String        @id @default(cuid())
+  name               String
+  keyPrefix          String
+  keyHash            String        @unique
+  userId             String
+  /// Alcances: READ (GET), WRITE (crear y modificar), TEST_RESULTS (importar resultados).
+  scopes             ApiKeyScope[] @default([READ])
+  /// Caducidad opcional; pasada esta fecha la llave devuelve 401.
+  expiresAt          DateTime?
+  /// Límite de peticiones por minuto; al excederlo, 429 con Retry-After.
+  requestsPerMinute  Int           @default(120)
+  createdAt          DateTime      @default(now())
+  lastUsedAt         DateTime?
+  revokedAt          DateTime?
+
+  user    User            @relation("ApiKeyOwner", fields: [userId], references: [id], onDelete: Cascade)
+  windows ApiKeyWindow[]
 
   @@index([userId])
+}
+
+/// Contador de peticiones por llave y minuto. Lo usa el límite de uso (F0-7);
+/// vive en la base porque el plan gratuito no incluye Redis.
+model ApiKeyWindow {
+  apiKeyId    String
+  windowStart DateTime
+  count       Int      @default(0)
+
+  apiKey ApiKey @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
+
+  @@id([apiKeyId, windowStart])
 }
 
 enum RoleScope {
@@ -257,6 +282,8 @@ model Issue {
   sprintId    String?
   storyPoints Int?
   dueDate     DateTime?
+  /// Orden fraccionario dentro del proyecto (backlog y tablero). Ver lib/rank-service.ts.
+  rank        String?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
@@ -280,6 +307,7 @@ model Issue {
   activity            IssueActivity[]
 
   @@unique([projectId, number])
+  @@unique([projectId, rank])
   @@index([projectId, statusId])
 }
 

@@ -77,6 +77,7 @@ export function NotificationBell() {
     <div ref={containerRef} className="relative">
       <button
         type="button"
+        data-testid="notifications-bell-button"
         onClick={() => {
           setOpen((o) => !o);
           if (!loaded) load();
@@ -97,7 +98,7 @@ export function NotificationBell() {
           <div className="flex items-center justify-between border-b border-border px-3 py-2">
             <span className="text-sm font-semibold">Notificaciones</span>
             {unreadCount > 0 && (
-              <button type="button" onClick={markAllRead} className="text-xs text-accent hover:underline">
+              <button type="button" onClick={markAllRead} data-testid="notifications-mark-all-read-button" className="text-xs text-accent hover:underline">
                 Marcar todas leídas
               </button>
             )}
@@ -107,7 +108,7 @@ export function NotificationBell() {
               <p className="px-3 py-6 text-center text-sm text-ink/50">Sin notificaciones todavía.</p>
             ) : (
               notifications.map((n) => (
-                <button
+                <button data-testid="notification-bell-button-n-body"
                   key={n.id}
                   type="button"
                   onClick={() => openNotification(n)}

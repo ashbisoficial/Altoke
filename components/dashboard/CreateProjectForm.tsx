@@ -45,7 +45,7 @@ export function CreateProjectForm({
 
   if (!open) {
     return (
-      <Button variant="secondary" onClick={() => setOpen(true)}>
+      <Button data-testid="create-project-form-button-1" variant="secondary" onClick={() => setOpen(true)}>
         <Plus size={14} />
         Nuevo proyecto
       </Button>
@@ -61,7 +61,7 @@ export function CreateProjectForm({
         <label className="text-sm font-medium" htmlFor="project-org">
           Organización
         </label>
-        <select
+        <select data-testid="create-project-form-select-2"
           id="project-org"
           className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm"
           value={organizationId}
@@ -78,13 +78,13 @@ export function CreateProjectForm({
         <label className="text-sm font-medium" htmlFor="project-name">
           Nombre
         </label>
-        <Input id="project-name" required value={name} onChange={(e) => setName(e.target.value)} />
+        <Input data-testid="create-project-form-input-3" id="project-name" required value={name} onChange={(e) => setName(e.target.value)} />
       </div>
       <div>
         <label className="text-sm font-medium" htmlFor="project-key">
           Key (ej. PROJ)
         </label>
-        <Input
+        <Input data-testid="create-project-form-input-4"
           id="project-key"
           required
           maxLength={10}
@@ -95,10 +95,10 @@ export function CreateProjectForm({
       </div>
       {error && <p className="text-sm text-red-600">{error}</p>}
       <div className="flex gap-2">
-        <Button type="submit" disabled={loading}>
+        <Button data-testid="create-project-form-button-5" type="submit" disabled={loading}>
           {loading ? "Creando…" : "Crear"}
         </Button>
-        <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
+        <Button data-testid="create-project-form-button-6" type="button" variant="ghost" onClick={() => setOpen(false)}>
           Cancelar
         </Button>
       </div>

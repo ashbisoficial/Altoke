@@ -149,7 +149,7 @@ export function WorkflowEditor({
                   </span>
                 ) : (
                   canEdit && (
-                    <button
+                    <button data-testid="workflow-editor-button-hacer-inicial"
                       type="button"
                       onClick={() => setInitial(status.id)}
                       className="text-xs text-accent underline underline-offset-4"
@@ -159,7 +159,7 @@ export function WorkflowEditor({
                   )
                 )}
                 {canEdit && (
-                  <button
+                  <button data-testid="workflow-editor-button-eliminar"
                     type="button"
                     onClick={() => deleteStatus(status.id)}
                     className="ml-auto text-xs text-ink/40 hover:text-red-600"
@@ -175,11 +175,11 @@ export function WorkflowEditor({
           <form onSubmit={addStatus} className="mt-3 flex flex-wrap items-end gap-2">
             <div>
               <label className="text-xs font-medium">Nombre</label>
-              <Input value={statusName} onChange={(e) => setStatusName(e.target.value)} />
+              <Input data-testid="workflow-editor-input-3" value={statusName} onChange={(e) => setStatusName(e.target.value)} />
             </div>
             <div>
               <label className="text-xs font-medium">Categoría</label>
-              <select
+              <select data-testid="workflow-editor-select-4"
                 className="block rounded-lg border border-border bg-surface px-2 py-2 text-sm"
                 value={statusCategory}
                 onChange={(e) => setStatusCategory(e.target.value as Status["category"])}
@@ -193,14 +193,14 @@ export function WorkflowEditor({
             </div>
             <div>
               <label className="text-xs font-medium">Color</label>
-              <input
+              <input data-testid="workflow-editor-input-5"
                 type="color"
                 value={statusColor}
                 onChange={(e) => setStatusColor(e.target.value)}
                 className="block h-9 w-14 rounded-lg border border-border bg-surface"
               />
             </div>
-            <Button type="submit" disabled={savingStatus}>
+            <Button data-testid="workflow-editor-button-6" type="submit" disabled={savingStatus}>
               <Plus size={14} />
               Estado
             </Button>
@@ -221,7 +221,7 @@ export function WorkflowEditor({
                 {statusName_(t.fromStatusId)} → {statusName_(t.toStatusId)}
               </span>
               {canEdit && (
-                <button
+                <button data-testid="workflow-editor-button-eliminar-2"
                   type="button"
                   onClick={() => deleteTransition(t.id)}
                   className="ml-auto text-xs text-ink/40 hover:text-red-600"
@@ -240,11 +240,11 @@ export function WorkflowEditor({
           <form onSubmit={addTransition} className="mt-3 flex flex-wrap items-end gap-2">
             <div>
               <label className="text-xs font-medium">Nombre</label>
-              <Input value={transitionName} onChange={(e) => setTransitionName(e.target.value)} />
+              <Input data-testid="workflow-editor-input-8" value={transitionName} onChange={(e) => setTransitionName(e.target.value)} />
             </div>
             <div>
               <label className="text-xs font-medium">Desde</label>
-              <select
+              <select data-testid="workflow-editor-select-9"
                 className="block rounded-lg border border-border bg-surface px-2 py-2 text-sm"
                 value={fromStatusId}
                 onChange={(e) => setFromStatusId(e.target.value)}
@@ -258,7 +258,7 @@ export function WorkflowEditor({
             </div>
             <div>
               <label className="text-xs font-medium">Hacia</label>
-              <select
+              <select data-testid="workflow-editor-select-10"
                 className="block rounded-lg border border-border bg-surface px-2 py-2 text-sm"
                 value={toStatusId}
                 onChange={(e) => setToStatusId(e.target.value)}
@@ -270,7 +270,7 @@ export function WorkflowEditor({
                 ))}
               </select>
             </div>
-            <Button type="submit" disabled={savingTransition}>
+            <Button data-testid="workflow-editor-button-11" type="submit" disabled={savingTransition}>
               <Plus size={14} />
               Transición
             </Button>

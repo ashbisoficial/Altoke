@@ -15,6 +15,9 @@ import { z, type ZodError } from "zod";
 
 export type ApiErrorCode =
   | "unauthenticated"
+  | "key_expired"
+  | "insufficient_scope"
+  | "rate_limited"
   | "forbidden"
   | "not_found"
   | "validation_failed"
@@ -25,6 +28,7 @@ export type ApiErrorCode =
 const CODE_BY_STATUS: Partial<Record<number, ApiErrorCode>> = {
   401: "unauthenticated",
   403: "forbidden",
+  429: "rate_limited",
   404: "not_found",
   409: "conflict",
   422: "validation_failed",

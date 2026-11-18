@@ -117,7 +117,7 @@ export function MuralElementView({
 
   if (element.type === "STICKY_NOTE") {
     body = editing ? (
-      <textarea
+      <textarea data-testid="mural-element-view-textarea-1"
         autoFocus
         defaultValue={text}
         onBlur={(e) => {
@@ -131,7 +131,7 @@ export function MuralElementView({
     );
   } else if (element.type === "TEXT") {
     body = editing ? (
-      <textarea
+      <textarea data-testid="mural-element-view-textarea-2"
         autoFocus
         defaultValue={text}
         onBlur={(e) => {
@@ -149,7 +149,7 @@ export function MuralElementView({
     body = (
       <div className="h-full w-full rounded-md border-2 border-ink/20 bg-ink/[0.02]">
         {editing ? (
-          <input
+          <input data-testid="mural-element-view-input-3"
             autoFocus
             defaultValue={title}
             onBlur={(e) => {

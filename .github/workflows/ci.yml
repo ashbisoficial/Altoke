@@ -34,6 +34,11 @@ jobs:
       - name: Pruebas
         run: npm test
 
+      - name: Selectores de prueba en elementos interactivos (F0-3)
+        run: >-
+          python3 scripts/add-testids.py --check
+          $(find components app -name "*.tsx" | grep -v components/ui | grep -v "^app/api")
+
       - name: Build
         run: npm run build
 

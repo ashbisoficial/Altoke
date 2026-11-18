@@ -25,7 +25,7 @@ export function ThemeQuickSwitcher() {
 
   return (
     <div ref={containerRef} className="relative">
-      <button
+      <button data-testid="theme-quick-switcher-button-cambiar-tema"
         type="button"
         onClick={() => setOpen((o) => !o)}
         aria-label="Cambiar tema"
@@ -42,7 +42,7 @@ export function ThemeQuickSwitcher() {
           </div>
           <div className="flex flex-col gap-1 p-2">
             {THEMES.map((t) => (
-              <button
+              <button data-testid="theme-quick-switcher-button-2"
                 key={t.id}
                 type="button"
                 onClick={() => {

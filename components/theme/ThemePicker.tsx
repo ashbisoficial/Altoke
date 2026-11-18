@@ -100,7 +100,7 @@ export function ThemePicker() {
         <h2 className="mb-2 font-heading text-sm font-semibold">Tema</h2>
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           {THEMES.map((t) => (
-            <button
+            <button data-testid="theme-picker-button-1"
               key={t.id}
               type="button"
               onClick={() => applyTheme(t.id)}
@@ -128,7 +128,7 @@ export function ThemePicker() {
         <div className="mb-1 flex items-center justify-between">
           <h2 className="font-heading text-sm font-semibold">Colores personalizados</h2>
           <label className="flex items-center gap-2 text-xs text-ink/60">
-            <input
+            <input data-testid="theme-picker-input-2"
               type="checkbox"
               checked={customEnabled}
               onChange={(e) => toggleCustom(e.target.checked)}
@@ -146,7 +146,7 @@ export function ThemePicker() {
               key={key}
               className="flex items-center gap-3 rounded-lg border border-border bg-surface px-3 py-2"
             >
-              <input
+              <input data-testid="theme-picker-input-3"
                 type="color"
                 value={colors[key] ?? "#000000"}
                 disabled={!customEnabled}
@@ -160,7 +160,7 @@ export function ThemePicker() {
         </div>
       </section>
 
-      <button
+      <button data-testid="theme-picker-button-restablecer-todo-al-tema-por-defecto"
         type="button"
         onClick={resetAll}
         className="flex w-fit items-center gap-1.5 text-xs text-ink/50 hover:text-ink"

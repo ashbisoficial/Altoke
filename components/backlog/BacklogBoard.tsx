@@ -17,7 +17,7 @@ import {
 import { SortableContext, verticalListSortingStrategy, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { ListFilter, Plus } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { BacklogRow, type BacklogIssue } from "./BacklogRow";
+import { BacklogRow, type BacklogIssue, type MoveTarget } from "./BacklogRow";
 
 const UNASSIGNED = "__sin_asignar__";
 
@@ -50,6 +50,10 @@ function Section({
   title,
   right,
   issues,
+  allIssueIds,
+  targets,
+  onMoveTo,
+  onStep,
   progress,
   accentColor = "#94A3B8",
 }: {
@@ -57,6 +61,10 @@ function Section({
   title: string;
   right?: React.ReactNode;
   issues: BacklogIssue[];
+  allIssueIds: string[];
+  targets: MoveTarget[];
+  onMoveTo: (issueId: string, containerId: string) => void;
+  onStep: (issueId: string, delta: -1 | 1) => void;
   progress?: { done: number; total: number };
   accentColor?: string;
 }) {
@@ -93,9 +101,20 @@ function Section({
             {issues.length === 0 && (
               <p className="px-1 py-2 text-xs text-ink/40">Suelta incidencias aquí.</p>
             )}
-            {issues.map((issue) => (
-              <BacklogRow key={issue.id} issue={issue} />
-            ))}
+            {issues.map((issue) => {
+              const pos = allIssueIds.indexOf(issue.id);
+              return (
+                <BacklogRow
+                  key={issue.id}
+                  issue={issue}
+                  targets={targets.filter((t) => t.id !== id)}
+                  canMoveUp={pos > 0}
+                  canMoveDown={pos >= 0 && pos < allIssueIds.length - 1}
+                  onMoveTo={(containerId) => onMoveTo(issue.id, containerId)}
+                  onStep={(delta) => onStep(issue.id, delta)}
+                />
+              );
+            })}
           </div>
         </SortableContext>
       </div>
@@ -164,6 +183,19 @@ export function BacklogBoard({
     return map;
   }, [visibleIssues, sprints]);
 
+  // Orden completo de cada contenedor (sin filtros): de ahí salen los vecinos
+  // de rank y si una incidencia puede subir o bajar.
+  const groupIds = useMemo(() => {
+    const map = new Map<string, string[]>();
+    for (const issue of issues) {
+      const key = issue.sprintId ?? "backlog";
+      const list = map.get(key) ?? [];
+      list.push(issue.id);
+      map.set(key, list);
+    }
+    return map;
+  }, [issues]);
+
   // El avance de cada sprint se calcula sobre todas sus incidencias, sin
   // aplicar los filtros de arriba — es una métrica del sprint completo,
   // no de lo que se está mirando en ese momento.
@@ -187,6 +219,69 @@ export function BacklogBoard({
     setError(null);
   }
 
+  // Contenedores: "backlog" y cada sprint. Dentro de cada uno, el orden lo
+  // da el rank de la base; `issues` ya llega y se mantiene en ese orden.
+  const containerOf = (i: BacklogIssue) => i.sprintId ?? "backlog";
+  const containerIdSet = new Set(["backlog", ...sprints.map((s) => s.id)]);
+  const moveTargets = [{ id: "backlog", name: "Backlog" }, ...sprints.map((s) => ({ id: s.id, name: s.name }))];
+
+  /**
+   * Único punto de entrada para mover una incidencia: lo usan el arrastre,
+   * el selector "Mover a…" y los botones de subir y bajar (F0-3).
+   * `index` es la posición dentro del contenedor destino, sin contar la
+   * propia incidencia. Usa los vecinos de la lista completa, no la filtrada.
+   */
+  async function placeIssue(issueId: string, targetContainerId: string, index: number | "end") {
+    const issue = issues.find((i) => i.id === issueId);
+    if (!issue) return;
+    const originalContainer = containerOf(issue);
+    const others = issues.filter((i) => i.id !== issueId && containerOf(i) === targetContainerId);
+    const at = index === "end" ? others.length : Math.max(0, Math.min(index, others.length));
+    const previous = others[at - 1]?.id ?? null;
+    const next = others[at]?.id ?? null;
+
+    const unchanged =
+      originalContainer === targetContainerId &&
+      issues.filter((i) => containerOf(i) === targetContainerId).indexOf(issue) === at;
+    if (unchanged) return;
+
+    const snapshot = issues;
+    const newSprintId = targetContainerId === "backlog" ? null : targetContainerId;
+    // Actualización optimista: quitar y volver a insertar junto al vecino.
+    const rest = issues.filter((i) => i.id !== issueId);
+    const anchorIdx = previous
+      ? rest.findIndex((i) => i.id === previous) + 1
+      : next
+        ? rest.findIndex((i) => i.id === next)
+        : rest.length;
+    rest.splice(anchorIdx, 0, { ...issue, sprintId: newSprintId });
+    setIssues(rest);
+    setError(null);
+
+    if (originalContainer !== targetContainerId) {
+      const res = await fetch(`/api/issues/${issueId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sprintId: newSprintId }),
+      });
+      if (!res.ok) return rollback(snapshot, res);
+    }
+
+    const res = await fetch(`/api/issues/${issueId}/rank`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ previousId: previous, nextId: next }),
+    });
+    if (!res.ok) return rollback(snapshot, res);
+    router.refresh();
+  }
+
+  async function rollback(snapshot: BacklogIssue[], res: Response) {
+    setIssues(snapshot);
+    const data = await res.json().catch(() => ({}));
+    setError(data.error?.message ?? data.error ?? "No se pudo mover la incidencia");
+  }
+
   async function handleDragEnd(event: DragEndEvent) {
     setActiveId(null);
     const { active, over } = event;
@@ -195,27 +290,35 @@ export function BacklogBoard({
     const issue = issues.find((i) => i.id === active.id);
     if (!issue) return;
 
-    const containerIds = new Set(["backlog", ...sprints.map((s) => s.id)]);
-    const overContainerId = containerIds.has(String(over.id))
-      ? String(over.id)
-      : issues.find((i) => i.id === over.id)?.sprintId ?? "backlog";
-
-    const currentContainerId = issue.sprintId ?? "backlog";
-    if (overContainerId === currentContainerId) return;
-
-    const newSprintId = overContainerId === "backlog" ? null : overContainerId;
-    setIssues((prev) => prev.map((i) => (i.id === issue.id ? { ...i, sprintId: newSprintId } : i)));
-
-    const res = await fetch(`/api/issues/${issue.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ sprintId: newSprintId }),
-    });
-    if (!res.ok) {
-      setIssues((prev) => prev.map((i) => (i.id === issue.id ? { ...i, sprintId: issue.sprintId } : i)));
-      const data = await res.json().catch(() => ({}));
-      setError(data.error ?? "No se pudo mover la incidencia");
+    const overId = String(over.id);
+    if (containerIdSet.has(overId)) {
+      return placeIssue(issue.id, overId, "end");
     }
+
+    const overIssue = issues.find((i) => i.id === overId);
+    if (!overIssue) return;
+    const target = containerOf(overIssue);
+    const others = issues.filter((i) => i.id !== issue.id && containerOf(i) === target);
+    const overIdx = others.findIndex((i) => i.id === overId);
+
+    // Mismo contenedor: si baja, se coloca después de la incidencia de destino.
+    const fullList = issues.filter((i) => containerOf(i) === target);
+    const fromIdx = fullList.findIndex((i) => i.id === issue.id);
+    const fullOverIdx = fullList.findIndex((i) => i.id === overId);
+    const movingDown = containerOf(issue) === target && fromIdx !== -1 && fromIdx < fullOverIdx;
+    return placeIssue(issue.id, target, movingDown ? overIdx + 1 : overIdx);
+  }
+
+  /** Subir o bajar una posición dentro de su contenedor (alternativa al arrastre). */
+  function stepIssue(issueId: string, delta: -1 | 1) {
+    const issue = issues.find((i) => i.id === issueId);
+    if (!issue) return;
+    const list = issues.filter((i) => containerOf(i) === containerOf(issue));
+    const pos = list.findIndex((i) => i.id === issueId);
+    const target = pos + delta;
+    if (target < 0 || target >= list.length) return;
+    // Índice sin contar la propia incidencia: con delta +1 queda después del vecino.
+    return placeIssue(issueId, containerOf(issue), target);
   }
 
   async function createSprint(e: React.FormEvent) {
@@ -278,10 +381,10 @@ export function BacklogBoard({
         <input
           value={newSprintName}
           onChange={(e) => setNewSprintName(e.target.value)}
-          placeholder="Nombre del nuevo sprint"
+          placeholder="Nombre del nuevo sprint" data-testid="backlog-sprint-name-input"
           className="w-64 rounded-lg border border-border bg-surface px-3 py-1.5 text-sm"
         />
-        <Button type="submit" variant="secondary" disabled={creatingSprint}>
+        <Button type="submit" variant="secondary" disabled={creatingSprint} data-testid="backlog-sprint-create-button">
           <Plus size={14} />
           Sprint
         </Button>
@@ -290,6 +393,7 @@ export function BacklogBoard({
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <ListFilter size={14} className="shrink-0 text-ink/40" />
         <select
+          data-testid="backlog-filter-assignee-select"
           value={assigneeFilter}
           onChange={(e) => setAssigneeFilter(e.target.value)}
           className="rounded-lg border border-border bg-surface px-2 py-1.5 text-xs"
@@ -303,6 +407,7 @@ export function BacklogBoard({
           ))}
         </select>
         <select
+          data-testid="backlog-filter-type-select"
           value={typeFilter}
           onChange={(e) => setTypeFilter(e.target.value)}
           className="rounded-lg border border-border bg-surface px-2 py-1.5 text-xs"
@@ -317,6 +422,7 @@ export function BacklogBoard({
         {hasActiveFilters && (
           <button
             type="button"
+            data-testid="backlog-filter-clear-button"
             onClick={() => {
               setAssigneeFilter("all");
               setTypeFilter("all");
@@ -346,6 +452,10 @@ export function BacklogBoard({
             id={sprint.id}
             title={sprint.name}
             issues={groups.get(sprint.id) ?? []}
+            allIssueIds={groupIds.get(sprint.id) ?? []}
+            targets={moveTargets}
+            onMoveTo={(issueId, containerId) => placeIssue(issueId, containerId, "end")}
+            onStep={stepIssue}
             progress={sprintProgress.get(sprint.id)}
             accentColor={SPRINT_STATUS_COLOR[sprint.status]}
             right={
@@ -364,7 +474,7 @@ export function BacklogBoard({
                   <input
                     type="date"
                     value={toDateInputValue(sprint.startDate)}
-                    onChange={(e) => updateSprintDate(sprint.id, "startDate", e.target.value)}
+                    onChange={(e) => updateSprintDate(sprint.id, "startDate", e.target.value)} data-testid={`backlog-sprint-start-date-${sprint.id}`}
                     className="rounded border border-border bg-surface px-1 py-0.5 text-xs"
                   />
                 </label>
@@ -373,17 +483,17 @@ export function BacklogBoard({
                   <input
                     type="date"
                     value={toDateInputValue(sprint.endDate)}
-                    onChange={(e) => updateSprintDate(sprint.id, "endDate", e.target.value)}
+                    onChange={(e) => updateSprintDate(sprint.id, "endDate", e.target.value)} data-testid={`backlog-sprint-end-date-${sprint.id}`}
                     className="rounded border border-border bg-surface px-1 py-0.5 text-xs"
                   />
                 </label>
                 {sprint.status === "PLANNED" && (
-                  <Button variant="ghost" onClick={() => runSprintAction(sprint.id, "start")}>
+                  <Button variant="ghost" onClick={() => runSprintAction(sprint.id, "start")} data-testid={`backlog-sprint-start-${sprint.id}`}>
                     Iniciar
                   </Button>
                 )}
                 {sprint.status === "ACTIVE" && (
-                  <Button variant="ghost" onClick={() => runSprintAction(sprint.id, "complete")}>
+                  <Button variant="ghost" onClick={() => runSprintAction(sprint.id, "complete")} data-testid={`backlog-sprint-complete-${sprint.id}`}>
                     Completar
                   </Button>
                 )}
@@ -391,8 +501,27 @@ export function BacklogBoard({
             }
           />
         ))}
-        <Section id="backlog" title="Backlog" issues={groups.get("backlog") ?? []} />
-        <DragOverlay>{activeIssue ? <BacklogRow issue={activeIssue} /> : null}</DragOverlay>
+        <Section
+          id="backlog"
+          title="Backlog"
+          issues={groups.get("backlog") ?? []}
+          allIssueIds={groupIds.get("backlog") ?? []}
+          targets={moveTargets}
+          onMoveTo={(issueId, containerId) => placeIssue(issueId, containerId, "end")}
+          onStep={stepIssue}
+        />
+        <DragOverlay>
+          {activeIssue ? (
+            <BacklogRow
+              issue={activeIssue}
+              targets={moveTargets}
+              canMoveUp={false}
+              canMoveDown={false}
+              onMoveTo={() => {}}
+              onStep={() => {}}
+            />
+          ) : null}
+        </DragOverlay>
       </DndContext>
     </div>
   );

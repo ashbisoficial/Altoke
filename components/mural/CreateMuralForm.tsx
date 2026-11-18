@@ -34,7 +34,7 @@ export function CreateMuralForm({ projectId }: { projectId: string }) {
 
   if (!open) {
     return (
-      <Button onClick={() => setOpen(true)} className="shrink-0">
+      <Button data-testid="create-mural-form-button-1" onClick={() => setOpen(true)} className="shrink-0">
         <Plus size={14} />
         Nuevo mural
       </Button>
@@ -43,15 +43,15 @@ export function CreateMuralForm({ projectId }: { projectId: string }) {
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-wrap items-end gap-2">
-      <Input
+      <Input data-testid="create-mural-form-input-nombre-del-mural-ej-sprint-12"
         value={name}
         onChange={(e) => setName(e.target.value)}
         placeholder="Nombre del mural (ej. Sprint 12)"
       />
-      <Button type="submit" disabled={loading}>
+      <Button data-testid="create-mural-form-button-3" type="submit" disabled={loading}>
         Crear
       </Button>
-      <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
+      <Button data-testid="create-mural-form-button-4" type="button" variant="ghost" onClick={() => setOpen(false)}>
         Cancelar
       </Button>
       {error && <p className="w-full text-sm text-red-600">{error}</p>}

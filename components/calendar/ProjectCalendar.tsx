@@ -141,7 +141,7 @@ export function ProjectCalendar({
             {MONTH_LABELS[cursor.getMonth()]} {cursor.getFullYear()}
           </h2>
           <div className="ml-auto flex items-center gap-1">
-            <button
+            <button data-testid="project-calendar-button-mes-anterior"
               type="button"
               onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))}
               aria-label="Mes anterior"
@@ -149,14 +149,14 @@ export function ProjectCalendar({
             >
               <ChevronLeft size={16} />
             </button>
-            <button
+            <button data-testid="project-calendar-button-hoy"
               type="button"
               onClick={() => setCursor(new Date(today.getFullYear(), today.getMonth(), 1))}
               className="rounded-lg px-2 py-1 text-xs font-medium text-ink/70 hover:bg-bg"
             >
               Hoy
             </button>
-            <button
+            <button data-testid="project-calendar-button-mes-siguiente"
               type="button"
               onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1))}
               aria-label="Mes siguiente"
@@ -179,7 +179,7 @@ export function ProjectCalendar({
               const dayIssues = issuesFor(day);
               const isToday = sameDay(day, today);
               return (
-                <button
+                <button data-testid="project-calendar-button-dayissues-slice-0-2-map-issue-dayissues"
                   key={day.toISOString()}
                   type="button"
                   onClick={() => setSelectedDay(day)}
@@ -226,7 +226,7 @@ export function ProjectCalendar({
               <Flag size={14} className="text-accent" />
               {selectedDay.toLocaleDateString("es", { day: "numeric", month: "long", year: "numeric" })}
             </h3>
-            <button
+            <button data-testid="project-calendar-button-cerrar"
               type="button"
               onClick={() => setSelectedDay(null)}
               className="text-xs text-ink/40 hover:text-ink"

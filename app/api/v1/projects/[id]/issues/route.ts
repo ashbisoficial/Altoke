@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { getApiUser } from "@/lib/api-auth";
+import { authenticateApi } from "@/lib/api-auth";
 import { hasProjectPermission, isProjectMember } from "@/lib/permissions";
 import { ServiceError, createIssue, createIssueInput } from "@/lib/issue-service";
 import {
@@ -12,7 +12,6 @@ import {
   paginate,
   v1Error,
   v1Forbidden,
-  v1Unauthorized,
   v1ValidationError,
 } from "@/lib/api-v1";
 
@@ -36,8 +35,9 @@ const issueFilters = z.object({
 });
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const user = await getApiUser(request);
-  if (!user) return v1Unauthorized();
+  const auth = await authenticateApi(request, "READ");
+  if (!auth.ok) return auth.response;
+  const user = auth.user;
   const { id: projectId } = await params;
 
   if (!(await isProjectMember(user.id, projectId))) return v1Forbidden();
@@ -81,8 +81,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 }
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const user = await getApiUser(request);
-  if (!user) return v1Unauthorized();
+  const auth = await authenticateApi(request, "WRITE");
+  if (!auth.ok) return auth.response;
+  const user = auth.user;
   const { id: projectId } = await params;
 
   if (!(await hasProjectPermission(user.id, projectId, "issue.create"))) return v1Forbidden();

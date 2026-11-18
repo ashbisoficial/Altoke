@@ -47,7 +47,7 @@ export function CreateOrgForm({ onCreated }: { onCreated?: () => void }) {
 
   if (!open) {
     return (
-      <Button variant="secondary" onClick={() => setOpen(true)}>
+      <Button data-testid="create-org-form-button-1" variant="secondary" onClick={() => setOpen(true)}>
         <Plus size={14} />
         Nueva organización
       </Button>
@@ -63,7 +63,7 @@ export function CreateOrgForm({ onCreated }: { onCreated?: () => void }) {
         <label className="text-sm font-medium" htmlFor="org-name">
           Nombre
         </label>
-        <Input
+        <Input data-testid="create-org-form-input-2"
           id="org-name"
           required
           value={name}
@@ -77,7 +77,7 @@ export function CreateOrgForm({ onCreated }: { onCreated?: () => void }) {
         <label className="text-sm font-medium" htmlFor="org-slug">
           Slug
         </label>
-        <Input
+        <Input data-testid="create-org-form-input-3"
           id="org-slug"
           required
           value={slug}
@@ -89,10 +89,10 @@ export function CreateOrgForm({ onCreated }: { onCreated?: () => void }) {
       </div>
       {error && <p className="text-sm text-red-600">{error}</p>}
       <div className="flex gap-2">
-        <Button type="submit" disabled={loading}>
+        <Button data-testid="create-org-form-button-4" type="submit" disabled={loading}>
           {loading ? "Creando…" : "Crear"}
         </Button>
-        <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
+        <Button data-testid="create-org-form-button-5" type="button" variant="ghost" onClick={() => setOpen(false)}>
           Cancelar
         </Button>
       </div>

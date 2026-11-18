@@ -1,19 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getApiUser } from "@/lib/api-auth";
+import { authenticateApi } from "@/lib/api-auth";
 import { hasProjectPermission, isProjectMember } from "@/lib/permissions";
 import { ServiceError, updateIssue, updateIssueInput } from "@/lib/issue-service";
 import {
   v1Error,
   v1Forbidden,
   v1NotFound,
-  v1Unauthorized,
   v1ValidationError,
 } from "@/lib/api-v1";
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const user = await getApiUser(request);
-  if (!user) return v1Unauthorized();
+  const auth = await authenticateApi(request, "READ");
+  if (!auth.ok) return auth.response;
+  const user = auth.user;
   const { id } = await params;
 
   const issue = await prisma.issue.findUnique({
@@ -33,8 +33,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 }
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const user = await getApiUser(request);
-  if (!user) return v1Unauthorized();
+  const auth = await authenticateApi(request, "WRITE");
+  if (!auth.ok) return auth.response;
+  const user = auth.user;
   const { id } = await params;
 
   const existing = await prisma.issue.findUnique({ where: { id }, select: { projectId: true } });

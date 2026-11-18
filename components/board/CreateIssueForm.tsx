@@ -45,7 +45,7 @@ export function CreateIssueForm({
 
   if (!open) {
     return (
-      <Button onClick={() => setOpen(true)} className="shrink-0">
+      <Button onClick={() => setOpen(true)} className="shrink-0" data-testid="board-create-open-button">
         <Plus size={14} />
         Nueva incidencia
       </Button>
@@ -59,7 +59,7 @@ export function CreateIssueForm({
           Tipo
         </label>
         <select
-          id="issue-type"
+          id="issue-type" data-testid="board-create-type-select"
           className="block rounded-lg border border-border bg-surface px-2 py-2 text-sm"
           value={issueTypeId}
           onChange={(e) => setIssueTypeId(e.target.value)}
@@ -76,17 +76,17 @@ export function CreateIssueForm({
           Título
         </label>
         <Input
-          id="issue-title"
+          id="issue-title" data-testid="board-create-title-input"
           required
           autoFocus
           value={title}
           onChange={(e) => setTitle(e.target.value)}
         />
       </div>
-      <Button type="submit" disabled={loading}>
+      <Button type="submit" disabled={loading} data-testid="board-create-submit-button">
         {loading ? "Creando…" : "Crear"}
       </Button>
-      <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
+      <Button type="button" variant="ghost" onClick={() => setOpen(false)} data-testid="board-create-cancel-button">
         Cancelar
       </Button>
       {selectedType && ISSUE_TYPE_HELP[selectedType.name] && (

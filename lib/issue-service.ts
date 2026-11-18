@@ -1,5 +1,7 @@
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { ensureProjectRanks, rankAtEnd } from "@/lib/rank-service";
 import { notify } from "@/lib/notifications";
 import { PRIORITY_LABEL } from "@/lib/priority";
 
@@ -44,17 +46,38 @@ export async function createIssue(reporterId: string, data: z.infer<typeof creat
   const initialStatus = project.workflow.statuses.find((s) => s.isInitial) ?? project.workflow.statuses[0];
   if (!initialStatus) throw new ServiceError(500, "El proyecto no tiene un flujo de trabajo válido");
 
+  await ensureProjectRanks(data.projectId);
+
+  // Dos creaciones simultáneas pueden calcular el mismo rank; la restricción
+  // única lo detecta y la transacción se reintenta con valores frescos.
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await createIssueOnce(reporterId, data, initialStatus.id);
+    } catch (e) {
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002" && attempt < 4) continue;
+      throw e;
+    }
+  }
+}
+
+async function createIssueOnce(
+  reporterId: string,
+  data: z.infer<typeof createIssueInput>,
+  statusId: string,
+) {
   return prisma.$transaction(async (tx) => {
     const updatedProject = await tx.project.update({
       where: { id: data.projectId },
       data: { issueCounter: { increment: 1 } },
     });
     const number = updatedProject.issueCounter;
+    const rank = await rankAtEnd(tx, data.projectId);
 
     return tx.issue.create({
       data: {
         projectId: data.projectId,
         number,
+        rank,
         key: `${updatedProject.key}-${number}`,
         issueTypeId: data.issueTypeId,
         title: data.title,
@@ -65,7 +88,7 @@ export async function createIssue(reporterId: string, data: z.infer<typeof creat
         sprintId: data.sprintId,
         storyPoints: data.storyPoints,
         dueDate: data.dueDate ? new Date(data.dueDate) : undefined,
-        statusId: initialStatus.id,
+        statusId,
         reporterId,
       },
       include: { issueType: true, status: true, assignee: true, reporter: true },

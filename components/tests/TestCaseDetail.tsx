@@ -106,7 +106,7 @@ export function TestCaseDetail({
 
       <section className="mt-6">
         <h2 className="mb-2 text-sm font-semibold text-ink/70">Precondiciones</h2>
-        <textarea
+        <textarea data-testid="test-case-detail-textarea-1"
           value={preconditions}
           onChange={(e) => setPreconditions(e.target.value)}
           rows={2}
@@ -119,19 +119,19 @@ export function TestCaseDetail({
         <div className="flex flex-col gap-2">
           {steps.map((s, i) => (
             <div key={i} className="flex gap-2">
-              <input
+              <input data-testid="test-case-detail-input-2"
                 placeholder={`Paso ${i + 1}`}
                 value={s.step}
                 onChange={(e) => updateStep(i, "step", e.target.value)}
                 className="flex-1 rounded-lg border border-border bg-surface px-3 py-2 text-sm"
               />
-              <input
+              <input data-testid="test-case-detail-input-resultado-esperado"
                 placeholder="Resultado esperado"
                 value={s.expectedResult ?? ""}
                 onChange={(e) => updateStep(i, "expectedResult", e.target.value)}
                 className="flex-1 rounded-lg border border-border bg-surface px-3 py-2 text-sm"
               />
-              <button
+              <button data-testid="test-case-detail-button-quitar-paso"
                 type="button"
                 onClick={() => setSteps((prev) => prev.filter((_, idx) => idx !== i))}
                 aria-label="Quitar paso"
@@ -143,7 +143,7 @@ export function TestCaseDetail({
           ))}
         </div>
         <div className="mt-2 flex gap-2">
-          <button
+          <button data-testid="test-case-detail-button-anadir-paso"
             type="button"
             onClick={() => setSteps((prev) => [...prev, { step: "", expectedResult: "" }])}
             className="flex items-center gap-1 text-xs text-accent hover:underline underline-offset-4"
@@ -152,7 +152,7 @@ export function TestCaseDetail({
             Añadir paso
           </button>
         </div>
-        <Button onClick={saveSteps} disabled={saving} className="mt-3">
+        <Button data-testid="test-case-detail-button-6" onClick={saveSteps} disabled={saving} className="mt-3">
           {saving ? "Guardando…" : "Guardar cambios"}
         </Button>
       </section>
@@ -168,7 +168,7 @@ export function TestCaseDetail({
               >
                 <span className="font-mono text-xs text-accent">{r.issue.key}</span>
                 <span className="flex-1 truncate">{r.issue.title}</span>
-                <button
+                <button data-testid="test-case-detail-button-quitar-requisito"
                   type="button"
                   onClick={() => removeRequirement(r.issue.id)}
                   aria-label="Quitar requisito"
@@ -182,7 +182,7 @@ export function TestCaseDetail({
         )}
         {otherRequirements.length > 0 && (
           <div className="flex gap-2">
-            <select
+            <select data-testid="test-case-detail-select-8"
               className="flex-1 rounded-lg border border-border bg-surface px-2 py-1.5 text-sm"
               value={requirementId}
               onChange={(e) => setRequirementId(e.target.value)}
@@ -193,7 +193,7 @@ export function TestCaseDetail({
                 </option>
               ))}
             </select>
-            <Button variant="secondary" onClick={addRequirement}>
+            <Button data-testid="test-case-detail-button-9" variant="secondary" onClick={addRequirement}>
               Enlazar
             </Button>
           </div>

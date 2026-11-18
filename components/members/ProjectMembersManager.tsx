@@ -95,7 +95,7 @@ export function ProjectMembersManager({
             <span className="font-medium">{member.user.name ?? member.user.email}</span>
             <span className="text-xs text-ink/50">{member.user.email}</span>
             {canManage ? (
-              <select
+              <select data-testid="project-members-manager-select-1"
                 className="ml-auto rounded-lg border border-border bg-surface px-2 py-1 text-sm"
                 value={member.role.id}
                 onChange={(e) => changeRole(member.id, e.target.value)}
@@ -110,7 +110,7 @@ export function ProjectMembersManager({
               <span className="ml-auto text-xs text-ink/60">{member.role.name}</span>
             )}
             {canManage && member.user.id !== currentUserId && (
-              <button
+              <button data-testid="project-members-manager-button-quitar"
                 type="button"
                 onClick={() => removeMember(member.id)}
                 className="text-xs text-ink/40 hover:text-red-600"
@@ -126,7 +126,7 @@ export function ProjectMembersManager({
         <form onSubmit={addMember} className="flex flex-wrap items-end gap-2">
           <div className="min-w-48 flex-1">
             <label className="text-xs font-medium">Correo</label>
-            <Input
+            <Input data-testid="project-members-manager-input-persona-correo-com"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -135,7 +135,7 @@ export function ProjectMembersManager({
           </div>
           <div>
             <label className="text-xs font-medium">Rol</label>
-            <select
+            <select data-testid="project-members-manager-select-4"
               className="block rounded-lg border border-border bg-surface px-2 py-2 text-sm"
               value={roleId}
               onChange={(e) => setRoleId(e.target.value)}
@@ -147,7 +147,7 @@ export function ProjectMembersManager({
               ))}
             </select>
           </div>
-          <Button type="submit" disabled={loading}>
+          <Button data-testid="project-members-manager-button-5" type="submit" disabled={loading}>
             Añadir
           </Button>
         </form>

@@ -80,13 +80,13 @@ export function AccountSettings({
             <label className="text-sm font-medium" htmlFor="account-email">
               Correo
             </label>
-            <Input id="account-email" value={email} disabled className="opacity-60" />
+            <Input data-testid="account-settings-input-1" id="account-email" value={email} disabled className="opacity-60" />
           </div>
           <div>
             <label className="text-sm font-medium" htmlFor="account-name">
               Nombre
             </label>
-            <Input
+            <Input data-testid="account-settings-input-tu-nombre"
               id="account-name"
               value={name}
               onChange={(e) => {
@@ -98,7 +98,7 @@ export function AccountSettings({
           </div>
           {nameError && <p className="text-sm text-red-600">{nameError}</p>}
           <div className="flex items-center gap-2">
-            <Button type="submit" disabled={savingName} className="w-fit">
+            <Button data-testid="account-settings-button-3" type="submit" disabled={savingName} className="w-fit">
               {savingName ? "Guardando…" : "Guardar"}
             </Button>
             {nameSaved && <span className="text-sm text-status-done">Guardado</span>}
@@ -113,7 +113,7 @@ export function AccountSettings({
             <label className="text-sm font-medium" htmlFor="new-password">
               Nueva contraseña
             </label>
-            <Input
+            <Input data-testid="account-settings-input-4"
               id="new-password"
               type="password"
               autoComplete="new-password"
@@ -129,7 +129,7 @@ export function AccountSettings({
             <label className="text-sm font-medium" htmlFor="confirm-password">
               Repite la nueva contraseña
             </label>
-            <Input
+            <Input data-testid="account-settings-input-5"
               id="confirm-password"
               type="password"
               autoComplete="new-password"
@@ -143,7 +143,7 @@ export function AccountSettings({
           </div>
           {passwordError && <p className="text-sm text-red-600">{passwordError}</p>}
           <div className="flex items-center gap-2">
-            <Button type="submit" disabled={savingPassword} className="w-fit">
+            <Button data-testid="account-settings-button-6" type="submit" disabled={savingPassword} className="w-fit">
               {savingPassword ? "Guardando…" : "Cambiar contraseña"}
             </Button>
             {passwordSaved && <span className="text-sm text-status-done">Contraseña actualizada</span>}

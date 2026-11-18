@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getApiUser } from "@/lib/api-auth";
+import { authenticateApi } from "@/lib/api-auth";
 import {
   CURSOR_ORDER_BY,
   afterCursorWhere,
@@ -8,13 +8,13 @@ import {
   pageParams,
   paginate,
   v1Error,
-  v1Unauthorized,
   v1ValidationError,
 } from "@/lib/api-v1";
 
 export async function GET(request: NextRequest) {
-  const user = await getApiUser(request);
-  if (!user) return v1Unauthorized();
+  const auth = await authenticateApi(request, "READ");
+  if (!auth.ok) return auth.response;
+  const user = auth.user;
 
   const page = pageParams.safeParse(Object.fromEntries(request.nextUrl.searchParams.entries()));
   if (!page.success) return v1ValidationError(page.error);

@@ -6,12 +6,18 @@ import { getSessionUser } from "@/lib/auth";
 import { ApiKeysManager } from "@/components/account/ApiKeysManager";
 
 const ENDPOINTS = [
-  { method: "GET", path: "/api/v1/projects", desc: "Lista tus proyectos." },
-  { method: "GET", path: "/api/v1/projects/:id/issue-types", desc: "Lista los tipos de incidencia del proyecto." },
-  { method: "GET", path: "/api/v1/projects/:id/issues", desc: "Lista las incidencias de un proyecto." },
-  { method: "POST", path: "/api/v1/projects/:id/issues", desc: "Crea una incidencia." },
-  { method: "GET", path: "/api/v1/issues/:id", desc: "Trae una incidencia." },
-  { method: "PATCH", path: "/api/v1/issues/:id", desc: "Actualiza una incidencia." },
+  { method: "GET", path: "/api/v1/projects", scope: "Leer", desc: "Lista tus proyectos (paginado)." },
+  { method: "GET", path: "/api/v1/projects/:id/issue-types", scope: "Leer", desc: "Lista los tipos de incidencia del proyecto." },
+  {
+    method: "GET",
+    path: "/api/v1/projects/:id/issues",
+    scope: "Leer",
+    desc: "Lista incidencias. Filtros: status, type, assignee, sprint, updatedSince. Paginado con limit (máx. 100) y cursor.",
+  },
+  { method: "POST", path: "/api/v1/projects/:id/issues", scope: "Crear y editar", desc: "Crea una incidencia." },
+  { method: "GET", path: "/api/v1/issues/:id", scope: "Leer", desc: "Trae una incidencia." },
+  { method: "PATCH", path: "/api/v1/issues/:id", scope: "Crear y editar", desc: "Actualiza una incidencia." },
+  { method: "POST", path: "/api/v1/issues/:id/rank", scope: "Crear y editar", desc: "Reordena: body { previousId, nextId }." },
 ];
 
 export default async function ApiKeysPage() {
@@ -24,6 +30,9 @@ export default async function ApiKeysPage() {
       id: true,
       name: true,
       keyPrefix: true,
+      scopes: true,
+      expiresAt: true,
+      requestsPerMinute: true,
       createdAt: true,
       lastUsedAt: true,
       revokedAt: true,
@@ -47,6 +56,7 @@ export default async function ApiKeysPage() {
       <ApiKeysManager
         initialKeys={apiKeys.map((k) => ({
           ...k,
+          expiresAt: k.expiresAt?.toISOString() ?? null,
           createdAt: k.createdAt.toISOString(),
           lastUsedAt: k.lastUsedAt?.toISOString() ?? null,
           revokedAt: k.revokedAt?.toISOString() ?? null,
@@ -63,11 +73,20 @@ export default async function ApiKeysPage() {
   -H "Authorization: Bearer altk_tu_llave_aca"`}
         </pre>
         <table className="mt-4 w-full text-left text-xs">
+          <thead>
+            <tr className="text-ink/50">
+              <th className="pb-1 pr-2 font-medium">Método</th>
+              <th className="pb-1 pr-2 font-medium">Ruta</th>
+              <th className="pb-1 pr-2 font-medium">Alcance</th>
+              <th className="pb-1 font-medium">Descripción</th>
+            </tr>
+          </thead>
           <tbody>
             {ENDPOINTS.map((e) => (
               <tr key={e.method + e.path} className="border-t border-border">
                 <td className="py-1.5 pr-2 font-mono font-medium text-accent">{e.method}</td>
                 <td className="py-1.5 pr-2 font-mono">{e.path}</td>
+                <td className="py-1.5 pr-2 text-xs text-ink/60">{e.scope}</td>
                 <td className="py-1.5 text-ink/60">{e.desc}</td>
               </tr>
             ))}

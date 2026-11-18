@@ -50,7 +50,7 @@ function ToolButton({
   hideLabel?: boolean;
 }) {
   return (
-    <button
+    <button data-testid="mural-canvas-button-1"
       type="button"
       onClick={onClick}
       title={label}
@@ -415,7 +415,7 @@ export function MuralCanvas({
                 onClick={() => fileInputRef.current?.click()}
                 hideLabel
               />
-              <input
+              <input data-testid="mural-canvas-input-2"
                 ref={fileInputRef}
                 type="file"
                 accept="image/*"
@@ -431,7 +431,7 @@ export function MuralCanvas({
         )}
 
         <div className="ml-auto flex items-center gap-0.5 rounded-lg bg-bg p-0.5">
-          <button
+          <button data-testid="mural-canvas-button-alejar"
             type="button"
             onClick={() => zoomBy(1 / 1.2)}
             aria-label="Alejar"
@@ -442,7 +442,7 @@ export function MuralCanvas({
           <span className="w-11 text-center text-xs font-medium tabular-nums text-ink/60">
             {Math.round(view.scale * 100)}%
           </span>
-          <button
+          <button data-testid="mural-canvas-button-acercar"
             type="button"
             onClick={() => zoomBy(1.2)}
             aria-label="Acercar"
@@ -451,7 +451,7 @@ export function MuralCanvas({
             <Plus size={14} />
           </button>
           <div className="mx-0.5 h-5 w-px bg-border" />
-          <button
+          <button data-testid="mural-canvas-button-restablecer-vista"
             type="button"
             onClick={() => setView({ scale: 1, x: 0, y: 0 })}
             aria-label="Restablecer vista"
@@ -478,7 +478,7 @@ export function MuralCanvas({
             <>
               <div className="flex items-center gap-1 px-1">
                 {STICKY_COLORS.map((c) => (
-                  <button
+                  <button data-testid="mural-canvas-button-label-al-frente-onclick-label-atras-oncl"
                     key={c}
                     type="button"
                     onClick={() => setColor(c)}
@@ -515,7 +515,7 @@ export function MuralCanvas({
             </>
           )}
 
-          <button
+          <button data-testid="mural-canvas-button-eliminar"
             type="button"
             onClick={deleteSelected}
             className="ml-auto flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50"

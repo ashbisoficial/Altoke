@@ -168,7 +168,7 @@ export function IssueDetail({
         </span>
       </div>
 
-      <input
+      <input data-testid="issue-detail-input-1"
         value={title}
         onChange={(e) => setTitle(e.target.value)}
         onBlur={() => title.trim() && title !== issue.title && save("title", { title: title.trim() })}
@@ -181,7 +181,7 @@ export function IssueDetail({
         <div className="flex flex-col gap-8">
           <section>
             <h2 className="mb-2 text-sm font-semibold text-ink/70">Descripción</h2>
-            <textarea
+            <textarea data-testid="issue-detail-textarea-anade-una-descripcion"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               onBlur={() =>
@@ -217,7 +217,7 @@ export function IssueDetail({
               </span>
             </div>
             {availableTransitions.length > 0 && (
-              <select
+              <select data-testid="issue-detail-select-3"
                 className="mt-2 w-full rounded-lg border border-border bg-surface px-2 py-1.5 text-sm"
                 value=""
                 onChange={(e) => e.target.value && moveToStatus(e.target.value)}
@@ -239,7 +239,7 @@ export function IssueDetail({
             <label className="text-xs font-medium text-ink/60">Prioridad</label>
             <select
               className="mt-1 w-full rounded-lg border border-border bg-surface px-2 py-1.5 text-sm"
-              value={issue.priority}
+              data-testid="issue-priority-select" value={issue.priority}
               disabled={savingField === "priority"}
               onChange={(e) => save("priority", { priority: e.target.value })}
             >
@@ -255,7 +255,7 @@ export function IssueDetail({
             <label className="text-xs font-medium text-ink/60">Asignado</label>
             <select
               className="mt-1 w-full rounded-lg border border-border bg-surface px-2 py-1.5 text-sm"
-              value={issue.assignee?.id ?? ""}
+              data-testid="issue-assignee-select" value={issue.assignee?.id ?? ""}
               disabled={savingField === "assignee"}
               onChange={(e) => save("assignee", { assigneeId: e.target.value || null })}
             >
@@ -272,7 +272,7 @@ export function IssueDetail({
             <label className="text-xs font-medium text-ink/60">Sprint</label>
             <select
               className="mt-1 w-full rounded-lg border border-border bg-surface px-2 py-1.5 text-sm"
-              value={issue.sprintId ?? ""}
+              data-testid="issue-sprint-select" value={issue.sprintId ?? ""}
               disabled={savingField === "sprint"}
               onChange={(e) => save("sprint", { sprintId: e.target.value || null })}
             >
@@ -287,7 +287,7 @@ export function IssueDetail({
 
           <div>
             <label className="text-xs font-medium text-ink/60">Puntos de historia</label>
-            <Input
+            <Input data-testid="issue-detail-input-4"
               type="number"
               min={0}
               defaultValue={issue.storyPoints ?? ""}
@@ -401,7 +401,7 @@ function LabelsSection({
             style={{ backgroundColor: label.color }}
           >
             {label.name}
-            <button
+            <button data-testid="issue-detail-button-5"
               type="button"
               onClick={() => removeLabel(label.id)}
               aria-label={`Quitar etiqueta ${label.name}`}
@@ -415,7 +415,7 @@ function LabelsSection({
       </div>
 
       {availableToAdd.length > 0 && (
-        <select
+        <select data-testid="issue-detail-select-6"
           className="mt-2 w-full rounded-lg border border-border bg-surface px-2 py-1.5 text-sm"
           value=""
           onChange={(e) => attachExisting(e.target.value)}
@@ -431,7 +431,7 @@ function LabelsSection({
 
       {adding ? (
         <form onSubmit={createAndAttach} className="mt-2 flex flex-col gap-2">
-          <Input
+          <Input data-testid="issue-detail-input-nombre-de-la-etiqueta"
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
             placeholder="Nombre de la etiqueta"
@@ -439,7 +439,7 @@ function LabelsSection({
           />
           <div className="flex flex-wrap gap-1.5">
             {LABEL_COLORS.map((color) => (
-              <button
+              <button data-testid="issue-detail-button-crear-setadding-false-cancelar-setadding"
                 key={color}
                 type="button"
                 onClick={() => setNewColor(color)}
@@ -452,16 +452,16 @@ function LabelsSection({
             ))}
           </div>
           <div className="flex gap-2">
-            <Button type="submit" variant="secondary" disabled={loading || !newName.trim()}>
+            <Button data-testid="issue-detail-button-9" type="submit" variant="secondary" disabled={loading || !newName.trim()}>
               Crear
             </Button>
-            <Button type="button" variant="ghost" onClick={() => setAdding(false)}>
+            <Button data-testid="issue-detail-button-10" type="button" variant="ghost" onClick={() => setAdding(false)}>
               Cancelar
             </Button>
           </div>
         </form>
       ) : (
-        <button
+        <button data-testid="issue-detail-button-nueva-etiqueta"
           type="button"
           onClick={() => setAdding(true)}
           className="mt-2 text-xs text-accent hover:underline underline-offset-4"
@@ -562,12 +562,12 @@ function SubtasksSection({
       )}
       {subtaskType && (
         <form onSubmit={addSubtask} className="flex gap-2">
-          <Input
+          <Input data-testid="issue-detail-input-anadir-subtarea"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Añadir subtarea…"
           />
-          <Button type="submit" variant="secondary" disabled={loading}>
+          <Button data-testid="issue-detail-button-13" type="submit" variant="secondary" disabled={loading}>
             Añadir
           </Button>
         </form>
@@ -635,7 +635,7 @@ function LinksSection({
                 {l.issue.key}
               </Link>
               <span className="flex-1 truncate">{l.issue.title}</span>
-              <button
+              <button data-testid="issue-detail-button-quitar-enlace"
                 type="button"
                 onClick={() => removeLink(l.id)}
                 className="text-ink/40 hover:text-red-600"
@@ -648,7 +648,7 @@ function LinksSection({
         </ul>
       )}
       <form onSubmit={addLink} className="flex flex-wrap gap-2">
-        <select
+        <select data-testid="issue-detail-select-15"
           className="rounded-lg border border-border bg-surface px-2 py-1.5 text-sm"
           value={type}
           onChange={(e) => setType(e.target.value)}
@@ -659,7 +659,7 @@ function LinksSection({
             </option>
           ))}
         </select>
-        <select
+        <select data-testid="issue-detail-select-16"
           className="min-w-40 flex-1 rounded-lg border border-border bg-surface px-2 py-1.5 text-sm"
           value={targetId}
           onChange={(e) => setTargetId(e.target.value)}
@@ -671,7 +671,7 @@ function LinksSection({
             </option>
           ))}
         </select>
-        <Button type="submit" variant="secondary" disabled={loading || !targetId}>
+        <Button data-testid="issue-detail-button-17" type="submit" variant="secondary" disabled={loading || !targetId}>
           Enlazar
         </Button>
       </form>
@@ -742,7 +742,7 @@ function AttachmentsSection({
               </a>
               <span className="text-xs text-ink/50">{Math.round(a.fileSize / 1024)} KB</span>
               {a.uploaderId === currentUserId && (
-                <button
+                <button data-testid="issue-detail-button-eliminar-adjunto"
                   type="button"
                   onClick={() => removeAttachment(a.id)}
                   className="text-ink/40 hover:text-red-600"
@@ -759,7 +759,7 @@ function AttachmentsSection({
         <span className="cursor-pointer rounded-lg border border-border bg-surface px-3 py-1.5 text-sm hover:bg-bg">
           {uploading ? "Subiendo…" : "Subir archivo"}
         </span>
-        <input type="file" className="hidden" onChange={handleUpload} disabled={uploading} />
+        <input data-testid="issue-detail-input-19" type="file" className="hidden" onChange={handleUpload} disabled={uploading} />
       </label>
       {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
     </section>
@@ -839,14 +839,14 @@ function CommentsSection({ issue, onChanged }: { issue: IssueDetailData; onChang
         ))}
       </ul>
       <form onSubmit={addComment} className="flex flex-col gap-2">
-        <textarea
+        <textarea data-testid="issue-detail-textarea-escribe-un-comentario"
           value={body}
           onChange={(e) => setBody(e.target.value)}
           rows={3}
           placeholder="Escribe un comentario…"
           className="w-full rounded-lg border border-border bg-surface p-3 text-sm focus-visible:border-accent"
         />
-        <Button type="submit" disabled={loading || !body.trim()} className="self-start">
+        <Button data-testid="issue-detail-button-21" type="submit" disabled={loading || !body.trim()} className="self-start">
           Comentar
         </Button>
       </form>

@@ -51,7 +51,7 @@ export default function SignupPage() {
             <label className="text-sm font-medium" htmlFor="name">
               Nombre
             </label>
-            <Input
+            <Input data-testid="page-input-1"
               id="name"
               type="text"
               autoComplete="name"
@@ -62,7 +62,7 @@ export default function SignupPage() {
             <label className="text-sm font-medium" htmlFor="email">
               Correo
             </label>
-            <Input
+            <Input data-testid="page-input-2"
               id="email"
               type="email"
               autoComplete="email"
@@ -73,7 +73,7 @@ export default function SignupPage() {
             <label className="text-sm font-medium" htmlFor="password">
               Contraseña
             </label>
-            <Input
+            <Input data-testid="page-input-3"
               id="password"
               type="password"
               autoComplete="new-password"
@@ -83,7 +83,7 @@ export default function SignupPage() {
               onChange={(e) => setPassword(e.target.value)}
             />
             {error && <p className="text-sm text-red-600">{error}</p>}
-            <Button type="submit" disabled={loading} className="mt-2 w-full">
+            <Button data-testid="page-button-4" type="submit" disabled={loading} className="mt-2 w-full">
               {loading ? "Creando cuenta…" : "Crear cuenta"}
             </Button>
           </form>

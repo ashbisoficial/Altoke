@@ -135,7 +135,7 @@ export function OrgMembersManager({
               <span className="font-medium">{member.user.name ?? member.user.email}</span>
               <span className="text-xs text-ink/50">{member.user.email}</span>
               {canManage ? (
-                <select
+                <select data-testid="org-members-manager-select-1"
                   className="ml-auto rounded-lg border border-border bg-surface px-2 py-1 text-sm"
                   value={member.role.id}
                   onChange={(e) => changeRole(member.id, e.target.value)}
@@ -150,7 +150,7 @@ export function OrgMembersManager({
                 <span className="ml-auto text-xs text-ink/60">{member.role.name}</span>
               )}
               {canManage && member.user.id !== currentUserId && (
-                <button
+                <button data-testid="org-members-manager-button-quitar-miembro"
                   type="button"
                   onClick={() => removeMember(member.id)}
                   aria-label="Quitar miembro"
@@ -171,7 +171,7 @@ export function OrgMembersManager({
             <div className="flex flex-wrap items-end gap-2">
               <div className="min-w-48 flex-1">
                 <label className="text-xs font-medium">Correo</label>
-                <Input
+                <Input data-testid="org-members-manager-input-persona-correo-com"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -180,7 +180,7 @@ export function OrgMembersManager({
               </div>
               <div>
                 <label className="text-xs font-medium">Rol en la organización</label>
-                <select
+                <select data-testid="org-members-manager-select-4"
                   className="block rounded-lg border border-border bg-surface px-2 py-2 text-sm"
                   value={orgRoleId}
                   onChange={(e) => setOrgRoleId(e.target.value)}
@@ -196,7 +196,7 @@ export function OrgMembersManager({
 
             {projects.length > 0 && (
               <label className="flex items-center gap-2 text-sm">
-                <input
+                <input data-testid="org-members-manager-input-5"
                   type="checkbox"
                   checked={alsoProject}
                   onChange={(e) => setAlsoProject(e.target.checked)}
@@ -209,7 +209,7 @@ export function OrgMembersManager({
               <div className="flex flex-wrap items-end gap-2">
                 <div>
                   <label className="text-xs font-medium">Proyecto</label>
-                  <select
+                  <select data-testid="org-members-manager-select-6"
                     className="block rounded-lg border border-border bg-surface px-2 py-2 text-sm"
                     value={projectId}
                     onChange={(e) => setProjectId(e.target.value)}
@@ -223,7 +223,7 @@ export function OrgMembersManager({
                 </div>
                 <div>
                   <label className="text-xs font-medium">Rol en el proyecto</label>
-                  <select
+                  <select data-testid="org-members-manager-select-7"
                     className="block rounded-lg border border-border bg-surface px-2 py-2 text-sm"
                     value={projectRoleId}
                     onChange={(e) => setProjectRoleId(e.target.value)}
@@ -238,7 +238,7 @@ export function OrgMembersManager({
               </div>
             )}
 
-            <Button type="submit" disabled={loading} className="w-fit">
+            <Button data-testid="org-members-manager-button-8" type="submit" disabled={loading} className="w-fit">
               <Mail size={14} />
               {loading ? "Enviando…" : "Invitar"}
             </Button>
@@ -253,7 +253,7 @@ export function OrgMembersManager({
               </p>
               <div className="flex items-center gap-2">
                 <code className="flex-1 overflow-x-auto rounded bg-bg px-2 py-1 text-xs">{lastLink.link}</code>
-                <Button variant="secondary" onClick={() => copyLink(lastLink.link, "last")}>
+                <Button data-testid="org-members-manager-button-9" variant="secondary" onClick={() => copyLink(lastLink.link, "last")}>
                   <Copy size={14} />
                   {copiedId === "last" ? "¡Copiado!" : "Copiar"}
                 </Button>
@@ -284,14 +284,14 @@ export function OrgMembersManager({
                       Sin correo enviado
                     </span>
                   )}
-                  <button
+                  <button data-testid="org-members-manager-button-10"
                     type="button"
                     onClick={() => copyLink(link, inv.id)}
                     className="text-xs text-accent hover:underline"
                   >
                     {copiedId === inv.id ? "¡Copiado!" : "Copiar enlace"}
                   </button>
-                  <button
+                  <button data-testid="org-members-manager-button-cancelar"
                     type="button"
                     onClick={() => revokeInvitation(inv.id)}
                     className="text-xs text-ink/40 hover:text-red-600"

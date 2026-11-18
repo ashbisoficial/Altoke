@@ -61,6 +61,7 @@ export function GlobalSearch() {
       <div className="flex items-center gap-1.5 rounded-lg border border-border bg-bg px-2.5 py-1.5">
         <Search size={14} className="shrink-0 text-ink/40" />
         <input
+          data-testid="global-search-input"
           type="text"
           value={query}
           onChange={(e) => {
@@ -81,7 +82,7 @@ export function GlobalSearch() {
             <p className="px-3 py-4 text-center text-sm text-ink/50">Sin resultados para: {query}</p>
           ) : (
             results.map((issue) => (
-              <button
+              <button data-testid="global-search-button-1"
                 key={issue.id}
                 type="button"
                 onClick={() => goTo(issue)}

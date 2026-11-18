@@ -28,8 +28,8 @@ export function AcceptInvitation({ token, isLoggedIn }: { token: string; isLogge
     const next = encodeURIComponent(`/invite/${token}`);
     return (
       <div className="flex flex-col gap-2 sm:flex-row">
-        <Button onClick={() => router.push(`/signup?next=${next}`)}>Crear cuenta y unirme</Button>
-        <Button variant="secondary" onClick={() => router.push(`/login?next=${next}`)}>
+        <Button data-testid="accept-invitation-button-1" onClick={() => router.push(`/signup?next=${next}`)}>Crear cuenta y unirme</Button>
+        <Button data-testid="accept-invitation-button-2" variant="secondary" onClick={() => router.push(`/login?next=${next}`)}>
           Ya tengo cuenta
         </Button>
       </div>
@@ -38,7 +38,7 @@ export function AcceptInvitation({ token, isLoggedIn }: { token: string; isLogge
 
   return (
     <div>
-      <Button onClick={accept} disabled={loading}>
+      <Button data-testid="accept-invitation-button-3" onClick={accept} disabled={loading}>
         {loading ? "Uniéndote…" : "Aceptar invitación"}
       </Button>
       {error && <p className="mt-2 text-sm text-red-600">{error}</p>}

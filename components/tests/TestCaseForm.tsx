@@ -63,7 +63,7 @@ export function TestCaseForm({
 
   if (!open) {
     return (
-      <Button onClick={() => setOpen(true)} className="shrink-0">
+      <Button data-testid="test-case-form-button-1" onClick={() => setOpen(true)} className="shrink-0">
         <Plus size={14} />
         Caso de prueba
       </Button>
@@ -79,13 +79,13 @@ export function TestCaseForm({
         <label className="text-sm font-medium" htmlFor="tc-title">
           Título
         </label>
-        <Input id="tc-title" required value={title} onChange={(e) => setTitle(e.target.value)} />
+        <Input data-testid="test-case-form-input-2" id="tc-title" required value={title} onChange={(e) => setTitle(e.target.value)} />
       </div>
       <div>
         <label className="text-sm font-medium" htmlFor="tc-precond">
           Precondiciones
         </label>
-        <textarea
+        <textarea data-testid="test-case-form-textarea-3"
           id="tc-precond"
           value={preconditions}
           onChange={(e) => setPreconditions(e.target.value)}
@@ -99,17 +99,17 @@ export function TestCaseForm({
         <div className="mt-1 flex flex-col gap-2">
           {steps.map((s, i) => (
             <div key={i} className="flex gap-2">
-              <Input
+              <Input data-testid="test-case-form-input-4"
                 placeholder={`Paso ${i + 1}`}
                 value={s.step}
                 onChange={(e) => updateStep(i, "step", e.target.value)}
               />
-              <Input
+              <Input data-testid="test-case-form-input-resultado-esperado"
                 placeholder="Resultado esperado"
                 value={s.expectedResult}
                 onChange={(e) => updateStep(i, "expectedResult", e.target.value)}
               />
-              <button
+              <button data-testid="test-case-form-button-quitar-paso"
                 type="button"
                 onClick={() => setSteps((prev) => prev.filter((_, idx) => idx !== i))}
                 aria-label="Quitar paso"
@@ -120,7 +120,7 @@ export function TestCaseForm({
             </div>
           ))}
         </div>
-        <button
+        <button data-testid="test-case-form-button-anadir-paso"
           type="button"
           onClick={() => setSteps((prev) => [...prev, { step: "", expectedResult: "" }])}
           className="mt-1 flex items-center gap-1 text-xs text-accent hover:underline underline-offset-4"
@@ -136,7 +136,7 @@ export function TestCaseForm({
           <div className="mt-1 flex max-h-32 flex-col gap-1 overflow-y-auto rounded-lg border border-border p-2">
             {requirements.map((r) => (
               <label key={r.id} className="flex items-center gap-2 text-sm">
-                <input
+                <input data-testid="test-case-form-input-8"
                   type="checkbox"
                   checked={requirementIds.includes(r.id)}
                   onChange={() => toggleRequirement(r.id)}
@@ -151,10 +151,10 @@ export function TestCaseForm({
 
       {error && <p className="text-sm text-red-600">{error}</p>}
       <div className="flex gap-2">
-        <Button type="submit" disabled={loading}>
+        <Button data-testid="test-case-form-button-9" type="submit" disabled={loading}>
           {loading ? "Creando…" : "Crear"}
         </Button>
-        <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
+        <Button data-testid="test-case-form-button-10" type="button" variant="ghost" onClick={() => setOpen(false)}>
           Cancelar
         </Button>
       </div>
