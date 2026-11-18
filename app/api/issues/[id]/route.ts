@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/auth";
 import { errorResponse, forbidden, notFound, unauthorized, zodErrorResponse } from "@/lib/http";
+import { softDeleteIssue } from "@/lib/trash-service";
 import { hasProjectPermission, isProjectMember } from "@/lib/permissions";
 import { ServiceError, updateIssue, updateIssueInput } from "@/lib/issue-service";
 
@@ -18,13 +19,13 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
       assignee: { select: { id: true, name: true, email: true, avatarUrl: true } },
       reporter: { select: { id: true, name: true, email: true, avatarUrl: true } },
       labels: { include: { label: true } },
-      components: { include: { component: true } },
       comments: {
+        where: { deletedAt: null },
         include: { author: { select: { id: true, name: true, email: true, avatarUrl: true } } },
         orderBy: { createdAt: "asc" },
       },
       attachments: true,
-      children: { include: { issueType: true, status: true } },
+      children: { where: { deletedAt: null }, include: { issueType: true, status: true } },
       parent: { select: { id: true, key: true, title: true } },
       linksFrom: { include: { target: { select: { id: true, key: true, title: true } } } },
       linksTo: { include: { source: { select: { id: true, key: true, title: true } } } },
@@ -66,6 +67,7 @@ export async function DELETE(_request: NextRequest, { params }: { params: Promis
   if (!existing) return notFound("Incidencia");
   if (!(await hasProjectPermission(user.id, existing.projectId, "issue.delete"))) return forbidden();
 
-  await prisma.issue.delete({ where: { id } });
+  // Borrado lógico: queda en la papelera y se puede restaurar (F0-8).
+  await softDeleteIssue(id);
   return NextResponse.json({ ok: true });
 }

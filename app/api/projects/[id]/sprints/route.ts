@@ -19,7 +19,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
 
   const sprints = await prisma.sprint.findMany({
     where: { projectId },
-    include: { _count: { select: { issues: true } } },
+    include: { _count: { select: { issues: { where: { deletedAt: null } } } } },
     orderBy: { createdAt: "desc" },
   });
 

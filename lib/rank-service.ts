@@ -1,7 +1,14 @@
 import { Prisma } from "@prisma/client";
 import { generateKeyBetween, generateNKeysBetween } from "fractional-indexing";
-import { prisma } from "@/lib/prisma";
+import { prisma, type DbTransaction } from "@/lib/prisma";
 import { ServiceError } from "@/lib/issue-service";
+import { z } from "zod";
+
+/** Cuerpo de POST /issues/:id/rank: la incidencia quedará entre estos dos vecinos. */
+export const placementInput = z.object({
+  previousId: z.string().min(1).nullable().optional(),
+  nextId: z.string().min(1).nullable().optional(),
+});
 
 /**
  * Orden de incidencias dentro de un proyecto (F0-4).
@@ -21,7 +28,7 @@ const MAX_ATTEMPTS = 4;
  * hacia el mismo hueco calculan la misma clave y solo uno gana por intento.
  * Con el bloqueo, cada transacción lee el orden que dejó la anterior.
  */
-async function lockProjectOrder(tx: Prisma.TransactionClient, projectId: string) {
+async function lockProjectOrder(tx: DbTransaction, projectId: string) {
   await tx.$queryRaw`SELECT id FROM "Project" WHERE id = ${projectId} FOR UPDATE`;
 }
 
@@ -64,7 +71,7 @@ export async function ensureProjectRanks(projectId: string): Promise<number> {
 }
 
 /** Rank para una incidencia nueva: al final del proyecto. */
-export async function rankAtEnd(tx: Prisma.TransactionClient, projectId: string): Promise<string> {
+export async function rankAtEnd(tx: DbTransaction, projectId: string): Promise<string> {
   const last = await tx.issue.findFirst({
     where: { projectId, rank: { not: null } },
     orderBy: { rank: "desc" },

@@ -23,7 +23,6 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
       organization: { select: { id: true, name: true, slug: true } },
       issueTypes: true,
       labels: true,
-      components: true,
       boards: true,
       sprints: { orderBy: { createdAt: "desc" } },
       members: { include: { user: true, role: true } },

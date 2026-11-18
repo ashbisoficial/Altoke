@@ -21,7 +21,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     where: { projectId },
     include: {
       sprint: { select: { id: true, name: true } },
-      _count: { select: { cases: true, executions: true } },
+      _count: { select: { cases: { where: { testCase: { deletedAt: null } } }, executions: true } },
     },
     orderBy: { createdAt: "desc" },
   });

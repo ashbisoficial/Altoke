@@ -1,4 +1,5 @@
-import type { Prisma, StatusCategory } from "@prisma/client";
+import { type DbTransaction } from "@/lib/prisma";
+import type { StatusCategory } from "@prisma/client";
 
 /** Global permission catalog. Keys are checked by lib/permissions.ts. */
 export const SYSTEM_PERMISSIONS = [
@@ -70,7 +71,7 @@ export const DEFAULT_ISSUE_TYPES: {
 
 /** Creates the Admin/Member/Viewer roles for a brand-new organization. */
 export async function createDefaultRoles(
-  tx: Prisma.TransactionClient,
+  tx: DbTransaction,
   organizationId: string,
 ) {
   await tx.permission.createMany({
@@ -102,7 +103,7 @@ export async function createDefaultRoles(
 
 /** Creates a fresh Workflow with the standard 4-status pipeline for a new project. */
 export async function createDefaultWorkflow(
-  tx: Prisma.TransactionClient,
+  tx: DbTransaction,
   organizationId: string,
   name: string,
 ) {
@@ -134,7 +135,7 @@ export async function createDefaultWorkflow(
 
 /** Creates the standard issue-type set (Epic/Story/Task/Bug/Subtask/Test Case) for a project. */
 export async function createDefaultIssueTypes(
-  tx: Prisma.TransactionClient,
+  tx: DbTransaction,
   projectId: string,
 ) {
   const types: Record<string, string> = {};

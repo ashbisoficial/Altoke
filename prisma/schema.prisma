@@ -60,22 +60,22 @@ enum ApiKeyScope {
 }
 
 model ApiKey {
-  id                 String        @id @default(cuid())
-  name               String
-  keyPrefix          String
-  keyHash            String        @unique
-  userId             String
+  id                String        @id @default(cuid())
+  name              String
+  keyPrefix         String
+  keyHash           String        @unique
+  userId            String
   /// Alcances: READ (GET), WRITE (crear y modificar), TEST_RESULTS (importar resultados).
-  scopes             ApiKeyScope[] @default([READ])
+  scopes            ApiKeyScope[] @default([READ])
   /// Caducidad opcional; pasada esta fecha la llave devuelve 401.
-  expiresAt          DateTime?
+  expiresAt         DateTime?
   /// Límite de peticiones por minuto; al excederlo, 429 con Retry-After.
-  requestsPerMinute  Int           @default(120)
-  createdAt          DateTime      @default(now())
-  lastUsedAt         DateTime?
-  revokedAt          DateTime?
+  requestsPerMinute Int           @default(120)
+  createdAt         DateTime      @default(now())
+  lastUsedAt        DateTime?
+  revokedAt         DateTime?
 
-  user    User            @relation("ApiKeyOwner", fields: [userId], references: [id], onDelete: Cascade)
+  user    User           @relation("ApiKeyOwner", fields: [userId], references: [id], onDelete: Cascade)
   windows ApiKeyWindow[]
 
   @@index([userId])
@@ -182,7 +182,6 @@ model Project {
   members      ProjectMember[]
   issues       Issue[]
   labels       Label[]
-  components   Component[]
   boards       Board[]
   sprints      Sprint[]
   issueTypes   IssueType[]
@@ -286,6 +285,8 @@ model Issue {
   rank        String?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+  /// Borrado lógico (F0-8): las consultas lo excluyen salvo la papelera. Ver lib/prisma.ts.
+  deletedAt   DateTime?
 
   project   Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
   issueType IssueType      @relation(fields: [issueTypeId], references: [id])
@@ -297,7 +298,6 @@ model Issue {
   sprint    Sprint?        @relation(fields: [sprintId], references: [id])
 
   labels              IssueLabel[]
-  components          IssueComponent[]
   comments            Comment[]
   attachments         Attachment[]
   linksFrom           IssueLink[]           @relation("LinkSource")
@@ -353,12 +353,13 @@ model IssueLink {
 }
 
 model Comment {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   issueId   String
   authorId  String
   body      String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 
   issue  Issue @relation(fields: [issueId], references: [id], onDelete: Cascade)
   author User  @relation(fields: [authorId], references: [id])
@@ -401,26 +402,7 @@ model IssueLabel {
   @@id([issueId, labelId])
 }
 
-model Component {
-  id        String @id @default(cuid())
-  projectId String
-  name      String
 
-  project Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  issues  IssueComponent[]
-
-  @@unique([projectId, name])
-}
-
-model IssueComponent {
-  issueId     String
-  componentId String
-
-  issue     Issue     @relation(fields: [issueId], references: [id], onDelete: Cascade)
-  component Component @relation(fields: [componentId], references: [id], onDelete: Cascade)
-
-  @@id([issueId, componentId])
-}
 
 // ---------------------------------------------------------------------------
 // Boards & sprints
@@ -469,12 +451,13 @@ model Sprint {
 // ---------------------------------------------------------------------------
 
 model TestCase {
-  id            String   @id @default(cuid())
-  issueId       String   @unique
+  id            String    @id @default(cuid())
+  issueId       String    @unique
   preconditions String?
   steps         Json
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
 
   issue        Issue                 @relation(fields: [issueId], references: [id], onDelete: Cascade)
   requirements TestCaseRequirement[]

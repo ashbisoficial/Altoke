@@ -106,6 +106,32 @@ export const updateIssueInput = z.object({
   dueDate: z.string().datetime().nullable().optional(),
 });
 
+/** Fecha como día (AAAA-MM-DD), para que el historial no muestre horas. */
+function formatDay(date: Date) {
+  return date.toISOString().slice(0, 10);
+}
+
+/**
+ * Registra un cambio en las etiquetas de una incidencia, con el conjunto
+ * anterior y el nuevo. Lo usan las rutas de etiquetas (F0-9).
+ */
+export async function recordLabelChange(actorId: string, issueId: string, before: string[], after: string[]) {
+  const a = [...before].sort().join(", ") || "Sin etiquetas";
+  const b = [...after].sort().join(", ") || "Sin etiquetas";
+  if (a === b) return;
+  await prisma.issueActivity.create({
+    data: { issueId, actorId, field: "labels", fromLabel: a, toLabel: b },
+  });
+}
+
+export async function labelNamesOf(issueId: string): Promise<string[]> {
+  const rows = await prisma.issueLabel.findMany({
+    where: { issueId },
+    include: { label: { select: { name: true } } },
+  });
+  return rows.map((r) => r.label.name);
+}
+
 export async function updateIssue(
   actorId: string,
   issueId: string,
@@ -164,6 +190,26 @@ export async function updateIssue(
       toLabel: issue.sprint?.name ?? "Backlog",
     });
   }
+  // Historial ampliado (F0-9): título, descripción y fecha límite, con el
+  // valor anterior y el nuevo.
+  if (rest.title !== undefined && rest.title !== existing.title) {
+    activities.push({ field: "title", fromLabel: existing.title, toLabel: issue.title });
+  }
+  if (rest.description !== undefined && (rest.description ?? null) !== (existing.description ?? null)) {
+    activities.push({
+      field: "description",
+      fromLabel: existing.description ?? "(vacía)",
+      toLabel: issue.description ?? "(vacía)",
+    });
+  }
+  if (dueDate !== undefined) {
+    const before = existing.dueDate ? formatDay(existing.dueDate) : null;
+    const after = issue.dueDate ? formatDay(issue.dueDate) : null;
+    if (before !== after) {
+      activities.push({ field: "dueDate", fromLabel: before ?? "Sin fecha", toLabel: after ?? "Sin fecha" });
+    }
+  }
+
   if (activities.length > 0) {
     await prisma.issueActivity.createMany({
       data: activities.map((a) => ({ issueId, actorId, ...a })),
@@ -171,4 +217,44 @@ export async function updateIssue(
   }
 
   return issue;
+}
+
+/**
+ * Cambia el estado de una incidencia si el flujo de trabajo del proyecto
+ * declara esa transición. El permiso `issue.transition` lo comprueba la ruta.
+ */
+export async function transitionIssue(actorId: string, issueId: string, toStatusId: string) {
+  const issue = await prisma.issue.findUnique({
+    where: { id: issueId },
+    include: { project: { select: { workflowId: true } }, status: { select: { name: true } } },
+  });
+  if (!issue) throw new ServiceError(404, "Incidencia no encontrada");
+  if (toStatusId === issue.statusId) throw new ServiceError(400, "La incidencia ya está en ese estado");
+
+  // Solo es legal si el flujo del proyecto declara una transición desde el
+  // estado actual hasta el pedido.
+  const transition = await prisma.workflowTransition.findFirst({
+    where: { workflowId: issue.project.workflowId, fromStatusId: issue.statusId, toStatusId },
+  });
+  if (!transition) {
+    throw new ServiceError(422, "Esa transición no está permitida por el flujo de trabajo del proyecto");
+  }
+
+  const updated = await prisma.issue.update({
+    where: { id: issueId },
+    data: { statusId: toStatusId },
+    include: { issueType: true, status: true, assignee: true, reporter: true },
+  });
+
+  await prisma.issueActivity.create({
+    data: {
+      issueId,
+      actorId,
+      field: "status",
+      fromLabel: issue.status.name,
+      toLabel: updated.status.name,
+    },
+  });
+
+  return updated;
 }

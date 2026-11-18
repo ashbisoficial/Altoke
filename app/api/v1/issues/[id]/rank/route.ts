@@ -1,16 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { authenticateApi } from "@/lib/api-auth";
 import { hasProjectPermission } from "@/lib/permissions";
 import { ServiceError } from "@/lib/issue-service";
-import { moveIssueRank } from "@/lib/rank-service";
+import { moveIssueRank, placementInput } from "@/lib/rank-service";
 import { v1Error, v1Forbidden, v1NotFound, v1ValidationError } from "@/lib/api-v1";
-
-const placementInput = z.object({
-  previousId: z.string().min(1).nullable().optional(),
-  nextId: z.string().min(1).nullable().optional(),
-});
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const auth = await authenticateApi(request, "WRITE");

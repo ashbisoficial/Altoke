@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/auth";
 import { forbidden, notFound, unauthorized } from "@/lib/http";
 import { hasProjectPermission } from "@/lib/permissions";
+import { labelNamesOf, recordLabelChange } from "@/lib/issue-service";
 
 export async function DELETE(
   _request: NextRequest,
@@ -16,6 +17,8 @@ export async function DELETE(
   if (!issue) return notFound("Incidencia");
   if (!(await hasProjectPermission(user.id, issue.projectId, "issue.edit"))) return forbidden();
 
+  const before = await labelNamesOf(id);
   await prisma.issueLabel.deleteMany({ where: { issueId: id, labelId } });
+  await recordLabelChange(user.id, id, before, await labelNamesOf(id));
   return NextResponse.json({ ok: true });
 }

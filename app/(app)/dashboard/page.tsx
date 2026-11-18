@@ -23,7 +23,7 @@ export default async function DashboardPage() {
     include: {
       projects: {
         orderBy: { createdAt: "desc" },
-        include: { _count: { select: { issues: true } } },
+        include: { _count: { select: { issues: { where: { deletedAt: null } } } } },
       },
     },
     orderBy: { createdAt: "desc" },

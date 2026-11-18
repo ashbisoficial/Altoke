@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
     },
     include: {
       organization: { select: { id: true, name: true, slug: true } },
-      _count: { select: { issues: true, members: true } },
+      _count: { select: { issues: { where: { deletedAt: null } }, members: true } },
     },
     orderBy: { createdAt: "desc" },
   });

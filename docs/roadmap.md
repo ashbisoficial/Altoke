@@ -221,22 +221,26 @@ Se responden antes de empezar la fase indicada.
 
 ## Estado de implementación
 
-Registro de avance por ítem. Se actualiza en cada entrega.
+Registro de avance por ítem. Se actualiza en cada entrega. Las pruebas de
+integración corren contra PostgreSQL con las migraciones aplicadas; en el CI
+están en el job de migraciones.
 
 | ID | Estado | Notas |
 |---|---|---|
-| F0-1 | Pendiente | Requiere crear el proyecto de Supabase de staging y el comando `seed:qa`. |
-| F0-2 | Hecho (falta protección de rama) | `.github/workflows/ci.yml`: lint, typecheck, pruebas y build en cada PR; migraciones sobre PostgreSQL vacío y comprobación de deriva. Para bloquear el merge, marcar los jobs `quality` y `migrations` como required en la protección de la rama. |
-| F0-3 | Pendiente | `data-testid` y menú "Mover a…". |
-| F0-4 | Pendiente | Campo `rank`. |
-| F0-5 | Parcial | Hecho: paginación por cursor (máx. 100, por defecto 50), filtros `status`, `type`, `assignee`, `sprint`, `updatedSince`, y errores `{ error: { code, message, fields? } }` en todas las rutas de `/api/v1`. Pendiente: especificación OpenAPI generada desde Zod. |
-| F0-6 | Hecho | `POST /api/sprints/:id/start` y `/complete`. Un solo sprint activo por proyecto (409, aplicado también por índice parcial en la base). Completar mueve las incidencias sin terminar a backlog o a un sprint planeado, y registra el cambio en el historial. `PATCH` ya no acepta `status`. |
-| F0-7 | Pendiente | Alcances y límite de uso en llaves. |
-| F0-8 | Pendiente | Borrado lógico. |
-| F0-9 | Pendiente | Historial ampliado. |
-| F0-10 | Pendiente | Componentes. |
-| F0-11 | Parcial | Infraestructura de pruebas (Vitest) y pruebas de paginación, errores de API v1 y ciclo de vida de sprint. Falta la matriz rol × acción. |
+| F0-1 | Hecho en código; pasos de paneles pendientes | `npm run seed:qa` (determinista, idempotente, 0,3 s en la base de CI). Guía y respaldo en `docs/staging-y-qa.md` y `.github/workflows/backup.yml`. Falta crear el proyecto de Supabase de staging y definir los secretos (paso manual). |
+| F0-2 | Hecho (falta protección de rama) | `.github/workflows/ci.yml`: lint, typecheck, pruebas, build, selectores de prueba, migraciones sobre PostgreSQL vacío y comprobación de deriva. Para bloquear el merge, marcar los jobs `quality` y `migrations` como required en la protección de la rama. |
+| F0-3 | Hecho | Selectores `data-testid` en toda la interfaz (`área-elemento-acción`), generados y verificados por `scripts/add-testids.py` (en CI con `--check`). Mover incidencias en backlog y tablero funciona con teclado: selector "Mover a…" y botones para subir y bajar. |
+| F0-4 | Hecho | Campo `rank` (orden fraccionario) con backfill automático, único por proyecto, reordenamiento persistente. Dos reordenamientos simultáneos no pierden ni duplican posiciones (pruebas de concurrencia). |
+| F0-5 | Hecho | Paginación por cursor (máx. 100), filtros, errores `{ error: { code, message, fields? } }`. Especificación OpenAPI 3.1 generada desde los mismos esquemas Zod (`/api/v1/openapi.json`); las pruebas comprueban que las respuestas reales cumplen esos esquemas. |
+| F0-6 | Hecho | Iniciar y completar sprint, un solo activo por proyecto (409, también con índice parcial en la base), incidencias sin terminar movidas a backlog o a un sprint planeado. |
+| F0-7 | Hecho | Alcances READ / WRITE / TEST_RESULTS, caducidad opcional, límite por minuto con 429 y `Retry-After` (contador atómico en la base). Las llaves existentes conservan todos los alcances. |
+| F0-8 | Hecho | Borrado lógico en incidencias (con subtareas), comentarios y casos de prueba. Papelera por proyecto con restaurar. Las consultas excluyen lo borrado en la capa de datos (`lib/prisma.ts`). |
+| F0-9 | Hecho | Historial de título, descripción, fecha límite y etiquetas, con valor anterior y nuevo. |
+| F0-10 | Hecho (decisión: eliminar) | Los componentes no tenían interfaz ni creación; se eliminan. La migración se niega a borrar si hay datos. |
+| F0-11 | Hecho | Matriz de 13 permisos × Admin, Member, Viewer contra la base, más pruebas de rutas con sesión simulada (crear, transicionar, iniciar sprint, borrar). |
 
-**Cambios que rompen compatibilidad en `/api/v1`** (aceptados por ser de uso personal): los errores pasan de `{ error: "texto" }` a `{ error: { code, message } }`, y el listado de incidencias y proyectos devuelve como máximo 50 ítems por defecto, con `nextCursor` para la siguiente página.
+**Cambios que rompen compatibilidad en `/api/v1`** (aceptados por ser de uso personal): los errores pasan de `{ error: "texto" }` a `{ error: { code, message } }`; los listados devuelven 50 ítems por defecto, con `nextCursor`; las llaves nuevas empiezan solo con `READ` y tienen límite de 120 peticiones por minuto.
 
-**Cómo correr las pruebas:** `npm test`. Las pruebas de integración (sprints y API v1) necesitan `DATABASE_URL` apuntando a una base PostgreSQL con las migraciones aplicadas; sin esa variable se omiten.
+**Comportamientos nuevos a conocer:** las incidencias nuevas van al final del backlog y del tablero (orden por `rank`, antes era por fecha); borrar una incidencia la manda a la papelera en vez de eliminarla.
+
+**Cómo correr las pruebas:** `npm test`. Las de integración necesitan `DATABASE_URL` con las migraciones aplicadas; sin esa variable se omiten.

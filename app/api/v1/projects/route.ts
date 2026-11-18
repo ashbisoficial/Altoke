@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
       name: true,
       createdAt: true,
       organization: { select: { id: true, name: true } },
-      _count: { select: { issues: true } },
+      _count: { select: { issues: { where: { deletedAt: null } } } },
     },
     orderBy: CURSOR_ORDER_BY,
     take: limit + 1,

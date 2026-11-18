@@ -31,7 +31,12 @@ export async function GET(request: NextRequest) {
       assignee: { select: { id: true, name: true, email: true, avatarUrl: true } },
       reporter: { select: { id: true, name: true, email: true, avatarUrl: true } },
       labels: { include: { label: true } },
-      _count: { select: { children: true, comments: true } },
+      _count: {
+        select: {
+          children: { where: { deletedAt: null } },
+          comments: { where: { deletedAt: null } },
+        },
+      },
     },
     orderBy: { createdAt: "desc" },
   });

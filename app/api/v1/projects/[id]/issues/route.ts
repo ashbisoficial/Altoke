@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { issueFilters } from "@/lib/api-v1-contract";
 import { authenticateApi } from "@/lib/api-auth";
 import { hasProjectPermission, isProjectMember } from "@/lib/permissions";
 import { ServiceError, createIssue, createIssueInput } from "@/lib/issue-service";
@@ -24,15 +24,6 @@ import {
  *   updatedSince  ISO 8601; solo incidencias modificadas desde esa fecha
  * Los nombres antiguos sprintId y assigneeId siguen aceptándose.
  */
-const issueFilters = z.object({
-  status: z.string().min(1).optional(),
-  type: z.string().min(1).optional(),
-  assignee: z.string().min(1).optional(),
-  assigneeId: z.string().min(1).optional(),
-  sprint: z.string().min(1).optional(),
-  sprintId: z.string().min(1).optional(),
-  updatedSince: z.iso.datetime({ message: "updatedSince debe ser una fecha ISO 8601" }).optional(),
-});
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const auth = await authenticateApi(request, "READ");

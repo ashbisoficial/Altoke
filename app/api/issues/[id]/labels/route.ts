@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/auth";
 import { errorResponse, forbidden, notFound, unauthorized, zodErrorResponse } from "@/lib/http";
 import { hasProjectPermission } from "@/lib/permissions";
+import { labelNamesOf, recordLabelChange } from "@/lib/issue-service";
 
 const attachLabelSchema = z.object({ labelId: z.string().min(1) });
 
@@ -26,12 +27,14 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     return errorResponse(400, "La etiqueta no pertenece a este proyecto");
   }
 
+  const before = await labelNamesOf(id);
   const issueLabel = await prisma.issueLabel.upsert({
     where: { issueId_labelId: { issueId: id, labelId } },
     update: {},
     create: { issueId: id, labelId },
     include: { label: true },
   });
+  await recordLabelChange(user.id, id, before, await labelNamesOf(id));
 
   return NextResponse.json({ issueLabel }, { status: 201 });
 }

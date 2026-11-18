@@ -37,7 +37,7 @@ export default async function BoardPage({
     include: {
       issueType: { select: { name: true, color: true } },
       assignee: { select: { name: true, email: true, avatarUrl: true } },
-      _count: { select: { children: true } },
+      _count: { select: { children: { where: { deletedAt: null } } } },
     },
     orderBy: { rank: "asc" },
   });

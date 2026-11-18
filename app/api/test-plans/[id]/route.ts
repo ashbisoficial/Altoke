@@ -14,6 +14,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     include: {
       sprint: { select: { id: true, name: true } },
       cases: {
+        where: { testCase: { deletedAt: null } },
         include: {
           testCase: { include: { issue: { select: { id: true, key: true, title: true } } } },
         },

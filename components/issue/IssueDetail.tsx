@@ -771,6 +771,10 @@ const ACTIVITY_FIELD_LABEL: Record<string, string> = {
   assignee: "quién está asignado",
   priority: "la prioridad",
   sprint: "el sprint",
+  title: "el título",
+  description: "la descripción",
+  dueDate: "la fecha límite",
+  labels: "las etiquetas",
 };
 
 function ActivitySection({ issue }: { issue: IssueDetailData }) {

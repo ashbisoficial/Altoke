@@ -1,0 +1,31 @@
+name: Respaldo de la base de datos
+
+# F0-1: respaldo programado con pg_dump. Requiere el secreto
+# BACKUP_DATABASE_URL (conexión de producción). Ver docs/staging-y-qa.md.
+on:
+  schedule:
+    - cron: "17 3 * * 0"   # domingos, 03:17 UTC
+  workflow_dispatch: {}
+
+jobs:
+  dump:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Volcar la base
+        env:
+          BACKUP_DATABASE_URL: ${{ secrets.BACKUP_DATABASE_URL }}
+        run: |
+          set -euo pipefail
+          if [ -z "$BACKUP_DATABASE_URL" ]; then
+            echo "Falta el secreto BACKUP_DATABASE_URL" >&2
+            exit 1
+          fi
+          stamp=$(date -u +%Y%m%dT%H%M%SZ)
+          pg_dump --no-owner --no-privileges --format=plain "$BACKUP_DATABASE_URL" | gzip -9 > "altoke-backup-$stamp.sql.gz"
+          ls -lh altoke-backup-*.sql.gz
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: altoke-backup
+          path: altoke-backup-*.sql.gz
+          retention-days: 14

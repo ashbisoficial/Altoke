@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { CalendarDays, FlaskConical, GitBranch, LayoutGrid, ListTodo, StickyNote, Users } from "lucide-react";
+import { CalendarDays, FlaskConical, GitBranch, LayoutGrid, ListTodo, StickyNote, Trash2, Users } from "lucide-react";
 
-export type ProjectSection = "board" | "backlog" | "calendar" | "workflow" | "tests" | "murals" | "members";
+export type ProjectSection = "board" | "backlog" | "calendar" | "workflow" | "tests" | "murals" | "members" | "trash";
 
 const SECTIONS: { key: ProjectSection; label: string; icon: React.ReactNode; href: (id: string) => string }[] = [
   { key: "board", label: "Tablero", icon: <LayoutGrid size={14} />, href: (id) => `/board?projectId=${id}` },
@@ -11,6 +11,7 @@ const SECTIONS: { key: ProjectSection; label: string; icon: React.ReactNode; hre
   { key: "tests", label: "Pruebas", icon: <FlaskConical size={14} />, href: (id) => `/projects/${id}/tests` },
   { key: "murals", label: "Murales", icon: <StickyNote size={14} />, href: (id) => `/projects/${id}/murals` },
   { key: "members", label: "Miembros", icon: <Users size={14} />, href: (id) => `/projects/${id}/members` },
+  { key: "trash", label: "Papelera", icon: <Trash2 size={14} />, href: (id) => `/projects/${id}/trash` },
 ];
 
 export function ProjectNav({ projectId, active }: { projectId: string; active: ProjectSection }) {

@@ -36,7 +36,7 @@ export default async function ProjectTestsPage({ params }: { params: Promise<{ i
     }),
     prisma.testPlan.findMany({
       where: { projectId },
-      include: { _count: { select: { cases: true, executions: true } } },
+      include: { _count: { select: { cases: { where: { testCase: { deletedAt: null } } }, executions: true } } },
       orderBy: { createdAt: "desc" },
     }),
     prisma.issue.findMany({

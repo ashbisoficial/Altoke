@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { softDeleteComment } from "@/lib/trash-service";
 import { getSessionUser } from "@/lib/auth";
 import { forbidden, notFound, unauthorized, zodErrorResponse } from "@/lib/http";
 
@@ -44,6 +45,6 @@ export async function DELETE(_request: NextRequest, { params }: { params: Promis
   if (!comment) return notFound("Comentario");
   if (!owns) return forbidden();
 
-  await prisma.comment.delete({ where: { id } });
+  await softDeleteComment(id);
   return NextResponse.json({ ok: true });
 }

@@ -1,16 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/auth";
 import { errorResponse, forbidden, notFound, unauthorized, zodErrorResponse } from "@/lib/http";
 import { hasProjectPermission } from "@/lib/permissions";
 import { ServiceError } from "@/lib/issue-service";
-import { moveIssueRank } from "@/lib/rank-service";
-
-const placementInput = z.object({
-  previousId: z.string().min(1).nullable().optional(),
-  nextId: z.string().min(1).nullable().optional(),
-});
+import { moveIssueRank, placementInput } from "@/lib/rank-service";
 
 /** Coloca la incidencia entre previousId y nextId (ver lib/rank-service.ts). */
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {

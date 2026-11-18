@@ -17,6 +17,7 @@ export default async function TestPlanPage({ params }: { params: Promise<{ id: s
     include: {
       project: { select: { id: true, name: true } },
       cases: {
+        where: { testCase: { deletedAt: null } },
         include: {
           testCase: { include: { issue: { select: { id: true, key: true, title: true } } } },
         },

@@ -23,11 +23,16 @@ export default async function IssueDetailPage({
       reporter: { select: { id: true, name: true, email: true, avatarUrl: true } },
       labels: { include: { label: true } },
       comments: {
+        where: { deletedAt: null },
         include: { author: { select: { id: true, name: true, email: true, avatarUrl: true } } },
         orderBy: { createdAt: "asc" },
       },
       attachments: { orderBy: { createdAt: "desc" } },
-      children: { include: { issueType: true, status: true }, orderBy: { number: "asc" } },
+      children: {
+        where: { deletedAt: null },
+        include: { issueType: true, status: true },
+        orderBy: { number: "asc" },
+      },
       parent: { select: { id: true, key: true, title: true } },
       linksFrom: {
         include: { target: { select: { id: true, key: true, title: true } } },
