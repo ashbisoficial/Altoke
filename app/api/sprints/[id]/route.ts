@@ -39,7 +39,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   try {
     assertValidSprintDates(nextStart, nextEnd);
   } catch (e) {
-    if (e instanceof ServiceError) return errorResponse(e.status, e.message);
+    if (e instanceof ServiceError) return errorResponse(e.status, e.message, e.fields);
     throw e;
   }
 

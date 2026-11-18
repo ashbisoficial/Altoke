@@ -22,7 +22,7 @@ export async function POST(_request: NextRequest, { params }: { params: Promise<
     await restoreComment(id);
     return NextResponse.json({ ok: true });
   } catch (e) {
-    if (e instanceof ServiceError) return errorResponse(e.status, e.message);
+    if (e instanceof ServiceError) return errorResponse(e.status, e.message, e.fields);
     throw e;
   }
 }

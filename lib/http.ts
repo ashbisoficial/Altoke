@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import type { ZodError } from "zod";
 
-export function errorResponse(status: number, message: string) {
-  return NextResponse.json({ error: message }, { status });
+export function errorResponse(status: number, message: string, fields?: Record<string, string[]>) {
+  return NextResponse.json({ error: message, ...(fields ? { fields } : {}) }, { status });
 }
 
 export function zodErrorResponse(error: ZodError) {

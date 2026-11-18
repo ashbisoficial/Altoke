@@ -7,13 +7,29 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { useListSelection } from "@/lib/hooks/useListSelection";
 import { ISSUE_TYPE_HELP } from "@/lib/issue-type-help";
+import { CustomFieldInput, type FieldDef, type PersonOption } from "@/components/fields/CustomFieldInput";
+
+/** Quita los valores vacíos para no enviar campos sin contenido. */
+function compactValues(defs: FieldDef[], values: Record<string, unknown>) {
+  const out: Record<string, unknown> = {};
+  for (const def of defs) {
+    const v = values[def.id];
+    if (v === undefined || v === null || v === "" || (Array.isArray(v) && v.length === 0)) continue;
+    out[def.id] = v;
+  }
+  return out;
+}
 
 export function CreateIssueForm({
   projectId,
   issueTypes,
+  customFields = [],
+  people = [],
 }: {
   projectId: string;
   issueTypes: { id: string; name: string }[];
+  customFields?: FieldDef[];
+  people?: PersonOption[];
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -22,6 +38,7 @@ export function CreateIssueForm({
   const selectedType = issueTypes.find((t) => t.id === issueTypeId);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [customValues, setCustomValues] = useState<Record<string, unknown>>({});
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -30,15 +47,17 @@ export function CreateIssueForm({
     const res = await fetch("/api/issues", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ projectId, title, issueTypeId }),
+      body: JSON.stringify({ projectId, title, issueTypeId, customFields: compactValues(customFields, customValues) }),
     });
     setLoading(false);
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
-      setError(body.error ?? "No se pudo crear la incidencia");
+      const detail = body.fields ? Object.values(body.fields).flat().join(" ") : null;
+      setError(detail ?? body.error ?? "No se pudo crear la incidencia");
       return;
     }
     setTitle("");
+    setCustomValues({});
     setOpen(false);
     router.refresh();
   }
@@ -83,6 +102,21 @@ export function CreateIssueForm({
           onChange={(e) => setTitle(e.target.value)}
         />
       </div>
+      {customFields.map((def) => (
+        <label key={def.id} className="flex min-w-40 flex-col gap-1 text-xs">
+          <span className="font-medium">
+            {def.name}
+            {def.required && <span className="text-red-600"> *</span>}
+          </span>
+          <CustomFieldInput
+            def={def}
+            value={customValues[def.id]}
+            people={people}
+            testId={`board-create-field-${def.name.toLowerCase().replace(/\s+/g, "-")}`}
+            onChange={(v) => setCustomValues((prev) => ({ ...prev, [def.id]: v }))}
+          />
+        </label>
+      ))}
       <Button type="submit" disabled={loading} data-testid="board-create-submit-button">
         {loading ? "Creando…" : "Crear"}
       </Button>

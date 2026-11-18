@@ -28,7 +28,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const updated = await transitionIssue(user.id, id, parsed.data.toStatusId);
     return NextResponse.json({ issue: updated });
   } catch (e) {
-    if (e instanceof ServiceError) return errorResponse(e.status, e.message);
+    if (e instanceof ServiceError) return errorResponse(e.status, e.message, e.fields);
     throw e;
   }
 }

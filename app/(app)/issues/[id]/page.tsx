@@ -60,6 +60,7 @@ export default async function IssueDetailPage({
       members: { include: { user: { select: { id: true, name: true, email: true, avatarUrl: true } } } },
       workflow: { include: { statuses: { orderBy: { order: "asc" } }, transitions: true } },
       labels: { orderBy: { name: "asc" } },
+      customFields: { orderBy: { position: "asc" } },
     },
   });
 

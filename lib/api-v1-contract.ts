@@ -61,6 +61,7 @@ export const issueSummary = z.object({
   rank: z.string().nullable(),
   createdAt: z.iso.datetime(),
   updatedAt: z.iso.datetime(),
+  customFields: z.record(z.string(), z.unknown()).optional(),
   issueType: z.object({ id: z.string(), name: z.string(), color: z.string().nullable() }).optional(),
   status: z.object({ id: z.string(), name: z.string(), color: z.string(), category: z.string() }).optional(),
   assignee: z.object({ id: z.string(), name: z.string().nullable(), email: z.string() }).nullable().optional(),

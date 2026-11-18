@@ -49,7 +49,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     const issue = await updateIssue(user.id, id, parsed.data);
     return NextResponse.json({ issue });
   } catch (e) {
-    if (e instanceof ServiceError) return v1Error(e.status, e.message);
+    if (e instanceof ServiceError) return v1Error(e.status, e.message, { fields: e.fields });
     throw e;
   }
 }

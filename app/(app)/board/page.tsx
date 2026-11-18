@@ -26,6 +26,8 @@ export default async function BoardPage({
     where: { id: projectId },
     include: {
       issueTypes: { where: { isSubtask: false } },
+      customFields: { orderBy: { position: "asc" } },
+      members: { include: { user: { select: { id: true, name: true, email: true } } } },
       workflow: { include: { statuses: { orderBy: { order: "asc" } } } },
     },
   });
@@ -59,6 +61,14 @@ export default async function BoardPage({
           <CreateIssueForm
             projectId={project.id}
             issueTypes={project.issueTypes.map((t) => ({ id: t.id, name: t.name }))}
+            customFields={project.customFields.map((f) => ({
+              id: f.id,
+              name: f.name,
+              type: f.type,
+              options: (f.options as string[] | null) ?? null,
+              required: f.required,
+            }))}
+            people={project.members.map((m) => m.user)}
           />
         </div>
         <ProjectNav projectId={project.id} active="board" />

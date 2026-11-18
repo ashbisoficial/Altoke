@@ -87,7 +87,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const issue = await createIssue(user.id, parsed.data);
     return NextResponse.json({ issue }, { status: 201 });
   } catch (e) {
-    if (e instanceof ServiceError) return v1Error(e.status, e.message);
+    if (e instanceof ServiceError) return v1Error(e.status, e.message, { fields: e.fields });
     throw e;
   }
 }

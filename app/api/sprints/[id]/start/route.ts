@@ -19,7 +19,7 @@ export async function POST(_request: NextRequest, { params }: { params: Promise<
     const updated = await startSprint(id);
     return NextResponse.json({ sprint: updated });
   } catch (e) {
-    if (e instanceof ServiceError) return errorResponse(e.status, e.message);
+    if (e instanceof ServiceError) return errorResponse(e.status, e.message, e.fields);
     throw e;
   }
 }

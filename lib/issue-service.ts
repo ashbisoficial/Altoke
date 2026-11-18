@@ -3,6 +3,9 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { ensureProjectRanks, rankAtEnd } from "@/lib/rank-service";
 import { notify } from "@/lib/notifications";
+import { notifyMentions } from "@/lib/mentions-service";
+import { applyCustomFieldPatch } from "@/lib/custom-fields";
+import { ServiceError } from "@/lib/service-error";
 import { PRIORITY_LABEL } from "@/lib/priority";
 
 /**
@@ -10,13 +13,7 @@ import { PRIORITY_LABEL } from "@/lib/priority";
  * (app/api/issues/**) and the public API (app/api/v1/**), so the two never
  * drift out of sync on validation, workflow rules, or activity logging.
  */
-export class ServiceError extends Error {
-  status: number;
-  constructor(status: number, message: string) {
-    super(message);
-    this.status = status;
-  }
-}
+export { ServiceError } from "@/lib/service-error";
 
 export const createIssueInput = z.object({
   projectId: z.string().min(1),
@@ -29,6 +26,7 @@ export const createIssueInput = z.object({
   sprintId: z.string().min(1).optional(),
   storyPoints: z.number().int().min(0).max(999).optional(),
   dueDate: z.string().datetime().optional(),
+  customFields: z.record(z.string(), z.unknown()).optional(),
 });
 
 export async function createIssue(reporterId: string, data: z.infer<typeof createIssueInput>) {
@@ -47,12 +45,13 @@ export async function createIssue(reporterId: string, data: z.infer<typeof creat
   if (!initialStatus) throw new ServiceError(500, "El proyecto no tiene un flujo de trabajo válido");
 
   await ensureProjectRanks(data.projectId);
+  const customFieldValues = await resolveCustomFields(data.projectId, {}, data.customFields, true);
 
   // Dos creaciones simultáneas pueden calcular el mismo rank; la restricción
   // única lo detecta y la transacción se reintenta con valores frescos.
   for (let attempt = 1; ; attempt++) {
     try {
-      return await createIssueOnce(reporterId, data, initialStatus.id);
+      return await createIssueOnce(reporterId, data, initialStatus.id, customFieldValues);
     } catch (e) {
       if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002" && attempt < 4) continue;
       throw e;
@@ -64,6 +63,7 @@ async function createIssueOnce(
   reporterId: string,
   data: z.infer<typeof createIssueInput>,
   statusId: string,
+  customFields: Record<string, unknown>,
 ) {
   return prisma.$transaction(async (tx) => {
     const updatedProject = await tx.project.update({
@@ -90,6 +90,7 @@ async function createIssueOnce(
         dueDate: data.dueDate ? new Date(data.dueDate) : undefined,
         statusId,
         reporterId,
+        customFields: customFields as Prisma.InputJsonValue,
       },
       include: { issueType: true, status: true, assignee: true, reporter: true },
     });
@@ -104,6 +105,7 @@ export const updateIssueInput = z.object({
   sprintId: z.string().min(1).nullable().optional(),
   storyPoints: z.number().int().min(0).max(999).nullable().optional(),
   dueDate: z.string().datetime().nullable().optional(),
+  customFields: z.record(z.string(), z.unknown()).optional(),
 });
 
 /** Fecha como día (AAAA-MM-DD), para que el historial no muestre horas. */
@@ -146,16 +148,34 @@ export async function updateIssue(
   });
   if (!existing) throw new ServiceError(404, "Incidencia no encontrada");
 
-  const { dueDate, ...rest } = data;
+  const { dueDate, customFields: customFieldsPatch, ...rest } = data;
+  const customFields =
+    customFieldsPatch !== undefined
+      ? await resolveCustomFields(existing.projectId, (existing.customFields ?? {}) as Record<string, unknown>, customFieldsPatch, false)
+      : undefined;
 
   const issue = await prisma.issue.update({
     where: { id: issueId },
     data: {
       ...rest,
       ...(dueDate !== undefined ? { dueDate: dueDate ? new Date(dueDate) : null } : {}),
+      ...(customFields !== undefined ? { customFields: customFields as Prisma.InputJsonValue } : {}),
     },
     include: { issueType: true, status: true, assignee: true, reporter: true, sprint: true },
   });
+
+  // Menciones nuevas en la descripción (F1-1): solo avisa a quien es nuevo en el texto.
+  if (rest.description && rest.description !== existing.description) {
+    await notifyMentions({
+      actorId,
+      issueId,
+      projectId: existing.projectId,
+      issueKey: existing.key,
+      issueTitle: issue.title,
+      text: rest.description,
+      previousText: existing.description,
+    });
+  }
 
   if (rest.assigneeId && rest.assigneeId !== existing.assigneeId) {
     await notify({
@@ -257,4 +277,43 @@ export async function transitionIssue(actorId: string, issueId: string, toStatus
   });
 
   return updated;
+}
+
+/**
+ * Valida y fusiona los valores de campos personalizados (F1-2). Carga las
+ * definiciones del proyecto y las personas de la organización (para USER).
+ */
+export async function resolveCustomFields(
+  projectId: string,
+  current: Record<string, unknown>,
+  patch: Record<string, unknown> | undefined,
+  creating: boolean,
+): Promise<Record<string, unknown>> {
+  const defs = await prisma.customField.findMany({ where: { projectId }, orderBy: { position: "asc" } });
+  if (defs.length === 0 && (!patch || Object.keys(patch).length === 0)) return current;
+
+  const needsUsers = defs.some((d) => d.type === "USER");
+  let validUserIds: Set<string> | undefined;
+  if (needsUsers) {
+    const project = await prisma.project.findUnique({ where: { id: projectId }, select: { organizationId: true } });
+    const members = await prisma.membership.findMany({
+      where: { organizationId: project?.organizationId ?? "" },
+      select: { userId: true },
+    });
+    validUserIds = new Set(members.map((m) => m.userId));
+  }
+
+  return applyCustomFieldPatch({
+    defs: defs.map((d) => ({
+      id: d.id,
+      name: d.name,
+      type: d.type,
+      options: (d.options as string[] | null) ?? null,
+      required: d.required,
+    })),
+    current,
+    patch,
+    creating,
+    validUserIds,
+  });
 }

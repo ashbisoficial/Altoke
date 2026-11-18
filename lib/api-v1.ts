@@ -55,8 +55,8 @@ export function v1ValidationError(error: ZodError) {
 }
 
 /** Convierte un error de servicio (ServiceError) en la forma v1. */
-export function v1FromServiceError(status: number, message: string) {
-  return v1Error(status, message);
+export function v1FromServiceError(status: number, message: string, fields?: Record<string, string[]>) {
+  return v1Error(status, message, { fields });
 }
 
 // ---------------------------------------------------------------------------

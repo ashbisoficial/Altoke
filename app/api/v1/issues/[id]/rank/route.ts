@@ -23,7 +23,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const updated = await moveIssueRank(id, parsed.data);
     return NextResponse.json({ issue: { id: updated.id, rank: updated.rank } });
   } catch (e) {
-    if (e instanceof ServiceError) return v1Error(e.status, e.message);
+    if (e instanceof ServiceError) return v1Error(e.status, e.message, { fields: e.fields });
     throw e;
   }
 }

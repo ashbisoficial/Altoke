@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
     const issue = await createIssue(user.id, parsed.data);
     return NextResponse.json({ issue }, { status: 201 });
   } catch (e) {
-    if (e instanceof ServiceError) return errorResponse(e.status, e.message);
+    if (e instanceof ServiceError) return errorResponse(e.status, e.message, e.fields);
     throw e;
   }
 }

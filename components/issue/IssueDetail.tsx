@@ -5,9 +5,30 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ArrowLeft, X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { Markdown } from "@/components/markdown/Markdown";
+import { MarkdownEditor } from "@/components/markdown/MarkdownEditor";
+import { CustomFieldsSection } from "@/components/fields/CustomFieldsSection";
+import type { FieldDef } from "@/components/fields/CustomFieldInput";
 import { Input } from "@/components/ui/Input";
 import { uploadAttachment } from "@/lib/supabase/storage";
 import { PRIORITY_LABEL, type Priority } from "@/lib/priority";
+
+/** Sube un archivo como adjunto de la incidencia y devuelve su URL para el texto (F1-1). */
+async function uploadInlineAttachment(issueId: string, file: File): Promise<string> {
+  const { fileUrl } = await uploadAttachment(file, issueId);
+  const res = await fetch(`/api/issues/${issueId}/attachments`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      fileName: file.name,
+      fileUrl,
+      fileSize: file.size,
+      mimeType: file.type || "application/octet-stream",
+    }),
+  });
+  if (!res.ok) throw new Error("No se pudo registrar el adjunto");
+  return fileUrl;
+}
 
 type PersonRef = { id: string; name: string | null; email: string; avatarUrl: string | null };
 
@@ -18,6 +39,8 @@ export type IssueDetailData = {
   id: string;
   key: string;
   title: string;
+  /** Valores de campos personalizados (JSON); ver lib/custom-fields.ts. */
+  customFields?: unknown;
   description: string | null;
   priority: Priority;
   statusId: string;
@@ -67,6 +90,8 @@ export type IssueDetailProject = {
   id: string;
   key: string;
   name: string;
+  /** Definiciones de campos personalizados del proyecto (JSON en la base). */
+  customFields?: unknown[];
   issueTypes: { id: string; name: string; isSubtask: boolean }[];
   sprints: { id: string; name: string; status: string }[];
   members: { user: PersonRef }[];
@@ -181,16 +206,17 @@ export function IssueDetail({
         <div className="flex flex-col gap-8">
           <section>
             <h2 className="mb-2 text-sm font-semibold text-ink/70">Descripción</h2>
-            <textarea data-testid="issue-detail-textarea-anade-una-descripcion"
+            <MarkdownEditor
+              testId="issue-detail-description"
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              onChange={setDescription}
               onBlur={() =>
                 description !== (issue.description ?? "") &&
                 save("description", { description: description || null })
               }
               rows={6}
-              placeholder="Añade una descripción…"
-              className="w-full rounded-lg border border-border bg-surface p-3 text-sm focus-visible:border-accent"
+              placeholder="Añade una descripción… (Markdown y @menciones)"
+              onUploadFile={(file) => uploadInlineAttachment(issue.id, file)}
             />
           </section>
 
@@ -284,6 +310,13 @@ export function IssueDetail({
               ))}
             </select>
           </div>
+
+          <CustomFieldsSection
+            issueId={issue.id}
+            defs={(project.customFields ?? []) as FieldDef[]}
+            values={(issue.customFields ?? {}) as Record<string, unknown>}
+            people={project.members.map((m) => m.user)}
+          />
 
           <div>
             <label className="text-xs font-medium text-ink/60">Puntos de historia</label>
@@ -838,17 +871,18 @@ function CommentsSection({ issue, onChanged }: { issue: IssueDetailData; onChang
               <span className="font-medium text-ink/80">{c.author.name ?? c.author.email}</span>
               <span>{new Date(c.createdAt).toLocaleString("es")}</span>
             </div>
-            <p className="whitespace-pre-wrap">{c.body}</p>
+            <Markdown>{c.body}</Markdown>
           </li>
         ))}
       </ul>
       <form onSubmit={addComment} className="flex flex-col gap-2">
-        <textarea data-testid="issue-detail-textarea-escribe-un-comentario"
+        <MarkdownEditor
+          testId="issue-detail-comment-body"
           value={body}
-          onChange={(e) => setBody(e.target.value)}
+          onChange={setBody}
           rows={3}
-          placeholder="Escribe un comentario…"
-          className="w-full rounded-lg border border-border bg-surface p-3 text-sm focus-visible:border-accent"
+          placeholder="Escribe un comentario… (Markdown y @menciones)"
+          onUploadFile={(file) => uploadInlineAttachment(issue.id, file)}
         />
         <Button data-testid="issue-detail-button-21" type="submit" disabled={loading || !body.trim()} className="self-start">
           Comentar

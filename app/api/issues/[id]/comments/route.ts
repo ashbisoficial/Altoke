@@ -5,6 +5,7 @@ import { getSessionUser } from "@/lib/auth";
 import { forbidden, notFound, unauthorized, zodErrorResponse } from "@/lib/http";
 import { isProjectMember } from "@/lib/permissions";
 import { notify } from "@/lib/notifications";
+import { notifyMentions } from "@/lib/mentions-service";
 
 const createCommentSchema = z.object({
   body: z.string().trim().min(1).max(5000),
@@ -28,6 +29,15 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const comment = await prisma.comment.create({
     data: { issueId: id, authorId: user.id, body: parsed.data.body },
     include: { author: { select: { id: true, name: true, email: true, avatarUrl: true } } },
+  });
+
+  await notifyMentions({
+    actorId: user.id,
+    issueId: id,
+    projectId: issue.projectId,
+    issueKey: issue.key,
+    issueTitle: issue.title,
+    text: parsed.data.body,
   });
 
   const notifyUserIds = new Set([issue.assigneeId, issue.reporterId].filter((v): v is string => !!v));
