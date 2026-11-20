@@ -12,8 +12,10 @@ describe("Markdown seguro", () => {
 
   it("no ejecuta etiquetas script ni HTML crudo", () => {
     const html = renderToStaticMarkup(<Markdown>{'<script>alert(1)</script> <img src=x onerror="alert(2)">'}</Markdown>);
-    expect(html).not.toContain("<script");
-    expect(html).not.toContain("onerror=");
+    // El HTML llega como texto escapado: no existe ningún elemento real.
+    expect(html).not.toMatch(/<script[\s>]/);
+    expect(html).not.toMatch(/<img[\s>]/);
+    expect(html).toContain("&lt;script&gt;");
   });
 
   it("bloquea enlaces javascript:", () => {

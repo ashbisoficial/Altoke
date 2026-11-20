@@ -254,3 +254,17 @@ están en el job de migraciones.
 **Comportamientos nuevos a conocer:** las incidencias nuevas van al final del backlog y del tablero (orden por `rank`, antes era por fecha); borrar una incidencia la manda a la papelera en vez de eliminarla.
 
 **Cómo correr las pruebas:** `npm test`. Las de integración necesitan `DATABASE_URL` con las migraciones aplicadas; sin esa variable se omiten.
+
+
+## Plataforma (noviembre 2026)
+
+- **Autenticación: Firebase Auth** (plan Spark, gratis). Registro, inicio de
+  sesión, enlace mágico, cambio de contraseña y cierre de sesión por cookie de
+  sesión verificada con firebase-admin. Probado con el emulador y en el
+  navegador (recorrido completo de registro, cierre, inicio y contraseña mala).
+- **Base de datos: pendiente.** Sigue en Postgres (Prisma). La migración a
+  Firestore toca 111 archivos; se hace por dominios, detrás de las pruebas.
+- **Almacenamiento y tiempo real: Supabase** (archivos y canal del mural). Las
+  subidas pasan por `/api/uploads` con comprobación de permiso.
+- **Hosting: Vercel Hobby** (gratis). Guía en `docs/firebase.md`.
+- Invitaciones: por enlace compartible (sin correo automático).

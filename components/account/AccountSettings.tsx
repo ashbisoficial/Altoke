@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
+import { updatePassword } from "firebase/auth";
+import { firebaseAuth } from "@/lib/firebase/client";
+import { authErrorMessage } from "@/lib/firebase/session-client";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 
@@ -59,13 +61,20 @@ export function AccountSettings({
       return;
     }
     setSavingPassword(true);
-    const supabase = createClient();
-    const { error } = await supabase.auth.updateUser({ password });
-    setSavingPassword(false);
-    if (error) {
-      setPasswordError(error.message);
+    const user = firebaseAuth().currentUser;
+    if (!user) {
+      setSavingPassword(false);
+      setPasswordError("Vuelve a iniciar sesión para cambiar la contraseña");
       return;
     }
+    try {
+      await updatePassword(user, password);
+    } catch (err) {
+      setSavingPassword(false);
+      setPasswordError(authErrorMessage(err));
+      return;
+    }
+    setSavingPassword(false);
     setPassword("");
     setConfirmPassword("");
     setPasswordSaved(true);

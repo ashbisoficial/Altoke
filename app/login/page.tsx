@@ -3,7 +3,9 @@
 import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
+import { signInWithEmailAndPassword, sendSignInLinkToEmail } from "firebase/auth";
+import { firebaseAuth } from "@/lib/firebase/client";
+import { authErrorMessage, establishSession } from "@/lib/firebase/session-client";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Logo } from "@/components/layout/Logo";
@@ -32,13 +34,15 @@ function LoginForm() {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    const supabase = createClient();
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setLoading(false);
-    if (error) {
-      setError(error.message);
+    try {
+      const credential = await signInWithEmailAndPassword(firebaseAuth(), email, password);
+      await establishSession(await credential.user.getIdToken());
+    } catch (err) {
+      setLoading(false);
+      setError(authErrorMessage(err));
       return;
     }
+    setLoading(false);
     router.push(next);
     router.refresh();
   }
@@ -47,18 +51,19 @@ function LoginForm() {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    const supabase = createClient();
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
-      },
-    });
-    setLoading(false);
-    if (error) {
-      setError(error.message);
+    try {
+      // El correo guarda el enlace; al abrirlo, /auth/callback completa el inicio de sesión.
+      window.localStorage.setItem("altoke-email-link", email);
+      await sendSignInLinkToEmail(firebaseAuth(), email, {
+        url: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
+        handleCodeInApp: true,
+      });
+    } catch (err) {
+      setLoading(false);
+      setError(authErrorMessage(err));
       return;
     }
+    setLoading(false);
     setMagicLinkSent(true);
   }
 

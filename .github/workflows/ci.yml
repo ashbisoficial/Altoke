@@ -75,8 +75,8 @@ jobs:
       - name: Aplicar todas las migraciones a una base vacía
         run: npx prisma migrate deploy
 
-      - name: Pruebas de integración (sprints y API v1 contra la base)
-        run: npm test
+      - name: Pruebas de integración con emulador de Firebase (base y autenticación)
+        run: npm run test:emulators
 
       - name: Comprobar que el esquema coincide con schema.prisma
         run: npx prisma migrate diff --from-url "$DATABASE_URL" --to-schema-datamodel prisma/schema.prisma --exit-code

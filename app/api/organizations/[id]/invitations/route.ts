@@ -5,7 +5,6 @@ import { getSessionUser } from "@/lib/auth";
 import { errorResponse, forbidden, unauthorized, zodErrorResponse } from "@/lib/http";
 import { hasOrgPermission, isOrgMember } from "@/lib/permissions";
 import { notify } from "@/lib/notifications";
-import { createAdminClient } from "@/lib/supabase/admin";
 
 const INVITE_TTL_DAYS = 14;
 
@@ -94,20 +93,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
   const inviteLink = `${siteUrl}/invite/${invitation.token}`;
 
-  let emailed = false;
-  if (!existingUser) {
-    try {
-      const admin = createAdminClient();
-      const { error } = await admin.auth.admin.inviteUserByEmail(email, {
-        redirectTo: `${siteUrl}/auth/callback?next=${encodeURIComponent(`/invite/${invitation.token}`)}`,
-      });
-      emailed = !error;
-    } catch {
-      emailed = false;
-    }
-  } else {
-    // Existing Altoke user — no need for a Supabase auth email, they can log
-    // in as usual. Let them know inside the app instead.
+  // Sin correo automático: el plan gratuito de Firebase no incluye un envío de
+  // invitaciones. Se comparte el enlace; quien lo abre se registra o entra y
+  // acepta. A los usuarios que ya existen se les avisa dentro de la app.
+  const emailed = false;
+  if (existingUser) {
     await notify({
       userId: existingUser.id,
       actorId: user.id,

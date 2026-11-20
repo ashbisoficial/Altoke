@@ -46,7 +46,7 @@ Este entorno no tiene acceso de red a Supabase, así que las migraciones no se p
 
 ```
 app/
-  login/, signup/, auth/callback/   → autenticación (Supabase Auth)
+  login/, signup/, auth/callback/   → autenticación (Firebase Auth, ver docs/firebase.md)
   invite/[token]/                   → aceptar una invitación (público, no requiere sesión para verla)
   (app)/                            → grupo de rutas autenticadas, comparten <AppHeader /> (logo, notificaciones, cuenta, salir)
     dashboard/                      → organizaciones y proyectos del usuario
@@ -80,7 +80,8 @@ components/
   dashboard/                        → formularios de organización/proyecto
 lib/
   prisma.ts                         → cliente Prisma (singleton)
-  supabase/                         → clientes de Supabase (browser, server, middleware, admin)
+  firebase/ + auth.ts               → Firebase Auth (cliente, admin y cookie de sesión)
+  supabase/                         → almacenamiento de archivos y tiempo real del mural
   auth.ts                           → getSessionUser() — sincroniza el usuario de Supabase con la tabla User
   permissions.ts                    → chequeo de permisos por rol (org y proyecto)
   seed-defaults.ts                  → catálogo de permisos, roles y flujo de trabajo por defecto

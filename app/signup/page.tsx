@@ -2,7 +2,10 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/client";
+import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
+import { firebaseAuth } from "@/lib/firebase/client";
+import { authErrorMessage, establishSession } from "@/lib/firebase/session-client";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Logo } from "@/components/layout/Logo";
@@ -13,27 +16,24 @@ export default function SignupPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [done, setDone] = useState(false);
+  const router = useRouter();
 
   async function handleSignUp(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    const supabase = createClient();
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { name },
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-      },
-    });
-    setLoading(false);
-    if (error) {
-      setError(error.message);
+    try {
+      const credential = await createUserWithEmailAndPassword(firebaseAuth(), email, password);
+      if (name.trim()) await updateProfile(credential.user, { displayName: name.trim() });
+      await establishSession(await credential.user.getIdToken(true));
+    } catch (err) {
+      setLoading(false);
+      setError(authErrorMessage(err));
       return;
     }
-    setDone(true);
+    setLoading(false);
+    router.push("/dashboard");
+    router.refresh();
   }
 
   return (
@@ -42,11 +42,6 @@ export default function SignupPage() {
         <Logo size="lg" />
         <p className="mt-3 text-sm text-ink/60">Empieza a usar Altoke gratis</p>
 
-        {done ? (
-          <p className="mt-6 text-sm text-ink/70">
-            Revisa tu correo <strong>{email}</strong> para confirmar tu cuenta.
-          </p>
-        ) : (
           <form onSubmit={handleSignUp} className="mt-6 flex flex-col gap-3">
             <label className="text-sm font-medium" htmlFor="name">
               Nombre
@@ -87,7 +82,6 @@ export default function SignupPage() {
               {loading ? "Creando cuenta…" : "Crear cuenta"}
             </Button>
           </form>
-        )}
 
         <p className="mt-6 text-center text-sm text-ink/60">
           ¿Ya tienes cuenta?{" "}

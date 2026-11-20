@@ -1,0 +1,10 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Toda la lectura y escritura pasa por el servidor de Altoke (firebase-admin),
+    // que comprueba la sesión y los permisos. El navegador no accede directamente.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

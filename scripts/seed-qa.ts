@@ -17,7 +17,7 @@
  *       Sin ellas solo se crean las filas de la base (suficiente para pruebas).
  */
 import { prisma } from "@/lib/prisma";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { adminAuth } from "@/lib/firebase/admin";
 import { createDefaultIssueTypes, createDefaultRoles, createDefaultWorkflow } from "@/lib/seed-defaults";
 import { createIssue } from "@/lib/issue-service";
 
@@ -29,28 +29,33 @@ export const QA_USERS = [
   { role: "Viewer", email: "qa.viewer@altoke.test", name: "QA Viewer", fallbackId: "qa-user-viewer" },
 ] as const;
 
-/** Si hay credenciales de Supabase, crea (o reutiliza) el usuario en Auth y devuelve su id. */
+/**
+ * Crea (o reutiliza) el usuario en Firebase Auth y devuelve su uid. Si no hay
+ * credenciales de Firebase configuradas, usa el id de respaldo: sirve para las
+ * pruebas de la base, pero no para iniciar sesión.
+ */
 async function ensureAuthUser(email: string, name: string, fallbackId: string): Promise<string> {
-  const supabaseReady = !!process.env.SUPABASE_SERVICE_ROLE_KEY && !!process.env.NEXT_PUBLIC_SUPABASE_URL;
-  if (!supabaseReady) return fallbackId;
+  const configured =
+    !!process.env.FIREBASE_AUTH_EMULATOR_HOST ||
+    !!process.env.FIREBASE_SERVICE_ACCOUNT_JSON ||
+    !!process.env.FIREBASE_CLIENT_EMAIL;
+  if (!configured) return fallbackId;
 
-  const password = process.env.QA_PASSWORD;
-  if (!password) throw new Error("Define QA_PASSWORD para crear los usuarios de QA en Supabase Auth");
+  // En el emulador no hay nada que proteger: basta una contraseña fija.
+  const emulator = !!process.env.FIREBASE_AUTH_EMULATOR_HOST;
+  const password = process.env.QA_PASSWORD ?? (emulator ? "qa-local-password" : undefined);
+  if (!password) throw new Error("Define QA_PASSWORD para crear los usuarios de QA en Firebase Auth");
 
-  const admin = createAdminClient();
-  const created = await admin.auth.admin.createUser({
-    email,
-    password,
-    email_confirm: true,
-    user_metadata: { name },
-  });
-  if (created.data.user) return created.data.user.id;
-
-  // Ya existía: se busca por correo para reutilizar su id.
-  const list = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
-  const existing = list.data.users.find((u) => u.email === email);
-  if (!existing) throw new Error(`No se pudo crear ni encontrar el usuario ${email}: ${created.error?.message}`);
-  return existing.id;
+  const auth = adminAuth();
+  try {
+    const existing = await auth.getUserByEmail(email);
+    await auth.updateUser(existing.uid, { password, displayName: name });
+    return existing.uid;
+  } catch (e) {
+    if ((e as { code?: string }).code !== "auth/user-not-found") throw e;
+  }
+  const created = await auth.createUser({ email, password, displayName: name, emailVerified: true });
+  return created.uid;
 }
 
 export async function seedQa() {
@@ -58,10 +63,15 @@ export async function seedQa() {
     throw new Error("seed:qa no se ejecuta en producción");
   }
 
-  // 1. Usuarios (filas de la base; el id coincide con Supabase Auth cuando existe).
+  // 1. Reinicio: borrar la organización de QA (en cascada) antes de recrearla.
+  await prisma.organization.deleteMany({ where: { slug: QA_SLUG } });
+
+  // 2. Usuarios. El uid de Firebase manda: si quedó una fila con el mismo
+  // correo y otro id (de un emulador o de una ejecución anterior), se borra.
   const users: Record<string, string> = {};
   for (const u of QA_USERS) {
     const id = await ensureAuthUser(u.email, u.name, u.fallbackId);
+    await prisma.user.deleteMany({ where: { email: u.email, NOT: { id } } });
     await prisma.user.upsert({
       where: { id },
       update: { email: u.email, name: u.name },
@@ -69,9 +79,6 @@ export async function seedQa() {
     });
     users[u.role] = id;
   }
-
-  // 2. Reinicio: borrar la organización de QA (en cascada) antes de recrearla.
-  await prisma.organization.deleteMany({ where: { slug: QA_SLUG } });
 
   // 3. Organización, roles, flujo, proyecto, tipos y membresías.
   const { org, project, workflowStatuses } = await prisma.$transaction(async (tx) => {

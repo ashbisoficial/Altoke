@@ -18,7 +18,7 @@ import {
   Trash2,
   Type as TypeIcon,
 } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
+import { realtimeClient as createClient } from "@/lib/supabase/realtime";
 import { uploadMuralImage } from "@/lib/supabase/storage";
 import { MuralElementView } from "./MuralElementView";
 import { STICKY_COLORS, type MuralElementData, type MuralElementType } from "./types";
